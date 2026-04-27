@@ -35,22 +35,26 @@ DESIGN DECISIONS:
 
 from rememberance_mcp.config import Settings
 from rememberance_mcp.gate import MemoryGate, GateDecision, GateResult
+from rememberance_mcp.gate_backends import (
+    BaseGateBackend, DilBERTBackend, HeuristicBackend, OpenAIBackend,
+    GateFallbackChain, GateMetrics, GateMetric,
+)
 from rememberance_mcp.extract import BaseExtractor, OllamaExtractor, StubExtractor, ExtractionResult
 from rememberance_mcp.store import MemoryStore, Memory
 from rememberance_mcp.pipeline import MemoryPipeline
 from rememberance_mcp.server import create_server
+from rememberance_mcp.registry import (
+    register_gate_backend, get_registered_backends, build_gate_chain,
+)
 
 __all__ = [
     "Settings",
-    "MemoryGate",
-    "GateDecision",
-    "GateResult",
-    "BaseExtractor",
-    "OllamaExtractor",
-    "StubExtractor",
-    "ExtractionResult",
-    "MemoryStore",
-    "Memory",
+    "MemoryGate", "GateDecision", "GateResult",
+    "BaseGateBackend", "DilBERTBackend", "HeuristicBackend", "OpenAIBackend",
+    "GateFallbackChain", "GateMetrics", "GateMetric",
+    "register_gate_backend", "get_registered_backends", "build_gate_chain",
+    "BaseExtractor", "OllamaExtractor", "StubExtractor", "ExtractionResult",
+    "MemoryStore", "Memory",
     "MemoryPipeline",
     "create_server",
     "main",

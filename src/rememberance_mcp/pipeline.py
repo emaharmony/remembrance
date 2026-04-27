@@ -29,12 +29,10 @@ from pathlib import Path
 from typing import Optional
 from rememberance_mcp.config import Settings
 from rememberance_mcp.gate import GateDecision
-from rememberance_mcp.gate_backends import (
-    DilBERTBackend, HeuristicBackend, OpenAIBackend,
-    GateFallbackChain, GateMetrics,
-)
+from rememberance_mcp.registry import build_gate_chain
 from rememberance_mcp.extract import OllamaExtractor, StubExtractor, BaseExtractor
 from rememberance_mcp.store import MemoryStore
+from rememberance_mcp.gate_backends import GateMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -57,48 +55,21 @@ class MemoryPipeline:
     def __init__(self, settings: Optional[Settings] = None):
         self.settings = settings or Settings()
 
-        # ── Layer 1: Gate (fallback chain) ──────────────────────
-        # Build the fallback chain based on what's available.
-        # HeuristicBackend is ALWAYS included as the last resort.
-        backends = []
-
-        # Try DilBERT first (local, fast, free)
-        try:
-            dilbert = DilBERTBackend(
-                model_path=self.settings.GATE_MODEL_PATH,
-                skip_threshold=self.settings.SKIP_THRESHOLD,
-            )
-            backends.append(dilbert)
-            logger.info("Gate backend: DilBERT available")
-        except Exception:
-            logger.info("Gate backend: DilBERT not available")
-
-        # Try OpenAI second (cloud, fast, cheap)
-        import os
-        openai_key = os.environ.get("OPENAI_API_KEY", "")
-        if openai_key:
-            try:
-                openai = OpenAIBackend(api_key=openai_key)
-                backends.append(openai)
-                logger.info("Gate backend: OpenAI available")
-            except Exception:
-                logger.info("Gate backend: OpenAI not available")
-
-        # Heuristic is ALWAYS available (zero dependencies)
-        backends.append(HeuristicBackend())
-        logger.info("Gate backend: Heuristic (always available)")
-
-        # Metrics for effectiveness monitoring
+        # ── Layer 1: Gate (pluggable fallback chain) ──────────
+        # Build from config or env var REMEMBRANCE_GATE_BACKENDS
+        # Default: dilbert → heuristic (works everywhere)
+        # Custom: set env var, e.g. REMEMBRANCE_GATE_BACKENDS=openai,heuristic
         metrics_db = self.settings.DB_PATH.parent / "metrics.db"
         self.metrics = GateMetrics(db_path=metrics_db)
-
-        # The fallback chain
-        self.gate_chain = GateFallbackChain(
-            backends=backends,
+        self.gate_chain = build_gate_chain(
+            settings=self.settings,
             metrics=self.metrics,
         )
 
         # ── Layer 2: Extract (structured extraction) ───────────
+        # Pluggable via extractor backends (same pattern as gate)
+        # Currently supports Ollama (local) with stub fallback
+
         try:
             self.extractor: BaseExtractor = OllamaExtractor(
                 model=self.settings.EXTRACT_MODEL,
