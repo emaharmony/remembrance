@@ -175,6 +175,26 @@ def create_server():
                     "required": ["id"],
                 },
             ),
+            Tool(
+                name="memory_metrics",
+                description=(
+                    "Get effectiveness metrics for the gate classifier. "
+                    "Shows classification distribution, backend performance, "
+                    "skip rate, fallback rate, and average confidence over the "
+                    "specified time period. Use this to monitor and compare "
+                    "gate backends (dilbert vs heuristic vs openai)."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "hours": {
+                            "type": "integer",
+                            "description": "Look back period in hours (default: 24)",
+                            "default": 24,
+                        },
+                    },
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -235,6 +255,13 @@ def create_server():
                 if deleted:
                     return [TextContent(type="text", text=f"Deleted memory {arguments['id']}.")]
                 return [TextContent(type="text", text=f"Memory {arguments['id']} not found.")]
+
+            elif name == "memory_metrics":
+                metrics = pipeline.metrics_summary(hours=arguments.get("hours", 24))
+                return [TextContent(
+                    type="text",
+                    text=json.dumps(metrics, indent=2),
+                )]
 
             else:
                 return [TextContent(type="text", text=f"Unknown tool: {name}")]

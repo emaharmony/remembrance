@@ -25,10 +25,15 @@ WHY PIPELINE?
 """
 
 import logging
+from pathlib import Path
 from typing import Optional
 from rememberance_mcp.config import Settings
-from rememberance_mcp.gate import MemoryGate, GateResult
-from rememberance_mcp.extract import OllamaExtractor, StubExtractor, BaseExtractor, ExtractionResult
+from rememberance_mcp.gate import GateDecision
+from rememberance_mcp.gate_backends import (
+    DilBERTBackend, HeuristicBackend, OpenAIBackend,
+    GateFallbackChain, GateMetrics,
+)
+from rememberance_mcp.extract import OllamaExtractor, StubExtractor, BaseExtractor
 from rememberance_mcp.store import MemoryStore
 
 logger = logging.getLogger(__name__)
@@ -38,24 +43,62 @@ class MemoryPipeline:
     """
     Orchestrates the full memory pipeline: Gate → Extract → Store.
 
+    The gate uses a fallback chain: DilBERT → OpenAI → Heuristic
+    This means it works on EVERY machine, from day one, no config needed.
+
     Usage:
         pipeline = MemoryPipeline()           # uses default settings
-        result = pipeline.capture("text")     # returns CaptureResult
+        result = pipeline.capture("text")     # returns dict
         memories = pipeline.search("query")    # returns list of dicts
         pipeline.consolidate()                 # runs decay/promotion
+        metrics = pipeline.metrics_summary()   # effectiveness report
     """
 
     def __init__(self, settings: Optional[Settings] = None):
         self.settings = settings or Settings()
 
-        # Layer 1: Gate (cheap classifier)
-        self.gate = MemoryGate(
-            model_path=self.settings.GATE_MODEL_PATH,
-            skip_threshold=self.settings.SKIP_THRESHOLD,
+        # ── Layer 1: Gate (fallback chain) ──────────────────────
+        # Build the fallback chain based on what's available.
+        # HeuristicBackend is ALWAYS included as the last resort.
+        backends = []
+
+        # Try DilBERT first (local, fast, free)
+        try:
+            dilbert = DilBERTBackend(
+                model_path=self.settings.GATE_MODEL_PATH,
+                skip_threshold=self.settings.SKIP_THRESHOLD,
+            )
+            backends.append(dilbert)
+            logger.info("Gate backend: DilBERT available")
+        except Exception:
+            logger.info("Gate backend: DilBERT not available")
+
+        # Try OpenAI second (cloud, fast, cheap)
+        import os
+        openai_key = os.environ.get("OPENAI_API_KEY", "")
+        if openai_key:
+            try:
+                openai = OpenAIBackend(api_key=openai_key)
+                backends.append(openai)
+                logger.info("Gate backend: OpenAI available")
+            except Exception:
+                logger.info("Gate backend: OpenAI not available")
+
+        # Heuristic is ALWAYS available (zero dependencies)
+        backends.append(HeuristicBackend())
+        logger.info("Gate backend: Heuristic (always available)")
+
+        # Metrics for effectiveness monitoring
+        metrics_db = self.settings.DB_PATH.parent / "metrics.db"
+        self.metrics = GateMetrics(db_path=metrics_db)
+
+        # The fallback chain
+        self.gate_chain = GateFallbackChain(
+            backends=backends,
+            metrics=self.metrics,
         )
 
-        # Layer 2: Extract (expensive structured extraction)
-        # Try Ollama first, fall back to stub if unavailable
+        # ── Layer 2: Extract (structured extraction) ───────────
         try:
             self.extractor: BaseExtractor = OllamaExtractor(
                 model=self.settings.EXTRACT_MODEL,
@@ -65,7 +108,7 @@ class MemoryPipeline:
             logger.warning("Ollama extractor unavailable, using stub")
             self.extractor = StubExtractor()
 
-        # Layer 3: Store (database)
+        # ── Layer 3: Store (database) ───────────────────────────
         self.store = MemoryStore(
             db_path=self.settings.DB_PATH,
             cold_ttl=self.settings.COLD_TTL,
@@ -78,29 +121,22 @@ class MemoryPipeline:
         """
         Run the full pipeline on a piece of text.
 
-        Args:
-            text: The raw text to process
-            source: Where this came from (discord, cli, api, etc.)
-            category: Override auto-detected category (optional)
-            tier: Override auto-detected tier (optional)
-
-        Returns:
-            dict with keys: id, decision, confidence, category, tier, summary, topics
-
         PIPELINE FLOW:
-          1. Gate classifies: SKIP → stop, COLD/ACTIVE/PERSIST → continue
+          1. Gate classifies (with fallback chain): SKIP → stop, COLD/ACTIVE/PERSIST → continue
           2. Extract summarizes and categorizes
           3. Store persists to SQLite with tier-based TTL
         """
-        # Stage 1: Gate
-        gate_result = self.gate.classify(text)
+        # Stage 1: Gate (with fallback chain and metrics)
+        gate_result, backend_used, fallback_used = self.gate_chain.classify(text)
 
-        if not gate_result.should_capture:
-            logger.debug(f"Gate: SKIP (confidence: {gate_result.confidence:.3f})")
+        if gate_result.decision == GateDecision.SKIP:
+            logger.debug(f"Gate: SKIP (confidence: {gate_result.confidence:.3f}, backend: {backend_used})")
             return {
                 "id": None,
                 "decision": "SKIP",
                 "confidence": gate_result.confidence,
+                "backend": backend_used,
+                "fallback_used": fallback_used,
                 "category": None,
                 "tier": None,
                 "summary": None,
@@ -130,6 +166,8 @@ class MemoryPipeline:
             "id": mem_id,
             "decision": gate_result.decision.value,
             "confidence": gate_result.confidence,
+            "backend": backend_used,
+            "fallback_used": fallback_used,
             "category": final_category,
             "tier": final_tier,
             "summary": extraction.summary,
@@ -152,3 +190,15 @@ class MemoryPipeline:
     def delete(self, mem_id: str) -> bool:
         """Delete a specific memory."""
         return self.store.delete(mem_id)
+
+    def metrics_summary(self, hours: int = 24) -> dict:
+        """
+        Get effectiveness metrics for the gate.
+
+        Use this to answer:
+          - Is DilBERT better than heuristics? (compare by_backend)
+          - What % of messages get SKIPPED? (skip_rate)
+          - Is the fallback working? (fallback_rate)
+          - How confident is the gate overall? (avg_confidence)
+        """
+        return self.metrics.summary(hours=hours)
