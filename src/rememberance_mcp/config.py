@@ -50,7 +50,7 @@ class Settings:
     PERSIST_TTL: int = -1           # -1 = never expires
 
     # ── Extraction ─────────────────────────────────────────
-    EXTRACT_MODEL: str = "nemotron-3-nano"
+    EXTRACT_MODEL: str = "nemotron-3-nano:4b"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # ── Search ─────────────────────────────────────────────
