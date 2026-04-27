@@ -26,10 +26,10 @@ WHY PIPELINE?
 
 import logging
 from typing import Optional
-from memory_mcp_server.config import Settings
-from memory_mcp_server.gate import MemoryGate, GateResult
-from memory_mcp_server.extract import OllamaExtractor, StubExtractor, BaseExtractor, ExtractionResult
-from memory_mcp_server.store import MemoryStore
+from rememberance_mcp.config import Settings
+from rememberance_mcp.gate import MemoryGate, GateResult
+from rememberance_mcp.extract import OllamaExtractor, StubExtractor, BaseExtractor, ExtractionResult
+from rememberance_mcp.store import MemoryStore
 
 logger = logging.getLogger(__name__)
 

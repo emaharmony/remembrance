@@ -3,35 +3,44 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "memory-mcp-server"
+name = "remembrance-mcp"
 version = "0.1.0"
 description = "Universal memory system for AI agents via MCP"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 authors = [{name = "Ema"}]
 
 dependencies = [
     "mcp>=1.0.0",
-    "torch>=2.0",
-    "transformers>=4.35",
-    "sentence-transformers>=2.2",
-    "sqlite-utils>=3.35",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest",
-    "ruff",
-    "httpx",
+gate = [
+    "torch>=2.0",
+    "transformers>=4.35",
+]
+search = [
+    "sentence-transformers>=2.2",
 ]
 api = [
     "fastapi>=0.104",
     "uvicorn>=0.24",
 ]
+dev = [
+    "pytest",
+    "ruff",
+    "httpx",
+    "torch>=2.0",
+    "transformers>=4.35",
+    "sentence-transformers>=2.2",
+]
 
 [project.scripts]
-memory-mcp = "memory_mcp_server:main"
+remembrance-mcp = "rememberance_mcp:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.ruff]
 line-length = 100

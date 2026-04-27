@@ -1,5 +1,5 @@
 """
-Memory MCP Server — Universal memory for AI agents.
+Remembrance MCP — Universal memory for AI agents.
 
 ARCHITECTURE PATTERN: Three-Layer Pipeline (Cascading Classifier)
 ================================================================
@@ -33,18 +33,24 @@ DESIGN DECISIONS:
   Runs locally via Ollama, no API key needed.
 """
 
-from memory_mcp_server.config import Settings
-from memory_mcp_server.gate import MemoryGate
-from memory_mcp_server.extract import MemoryExtractor
-from memory_mcp_server.store import MemoryStore
-from memory_mcp_server.pipeline import MemoryPipeline
-from memory_mcp_server.server import create_server
+from rememberance_mcp.config import Settings
+from rememberance_mcp.gate import MemoryGate, GateDecision, GateResult
+from rememberance_mcp.extract import BaseExtractor, OllamaExtractor, StubExtractor, ExtractionResult
+from rememberance_mcp.store import MemoryStore, Memory
+from rememberance_mcp.pipeline import MemoryPipeline
+from rememberance_mcp.server import create_server
 
 __all__ = [
     "Settings",
     "MemoryGate",
-    "MemoryExtractor", 
+    "GateDecision",
+    "GateResult",
+    "BaseExtractor",
+    "OllamaExtractor",
+    "StubExtractor",
+    "ExtractionResult",
     "MemoryStore",
+    "Memory",
     "MemoryPipeline",
     "create_server",
     "main",

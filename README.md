@@ -1,13 +1,15 @@
-# Memory MCP Server
+# Remembrance MCP
 
 A universal memory system for AI agents. Works with Claude Desktop, Cursor, OpenAI agents, OpenClaw, and any MCP-compatible environment.
+
+**Apache 2.0 Licensed** — use it anywhere, patent-protected.
 
 ## Architecture
 
 ```
 AI Agent (Claude, GPT, OpenClaw, etc.)
     ↕  JSON-RPC (MCP protocol)
-MCP Server (Python)
+Remembrance MCP Server (Python)
     ↕  3-layer pipeline
 ┌─────────────────────────────────┐
 │  GATE    → DilBERT 4-class      │  "Should I save this?"  (<100ms)
@@ -25,40 +27,39 @@ MCP Server (Python)
 | ACTIVE | Current context | 30 days | Project state, tasks |
 | PERSIST | Important forever | None | Decisions, people, architecture |
 
-## Setup
+## Quick Start
 
 ```bash
 # Clone
-git clone https://github.com/emaharmony/memory-mcp-server.git
-cd memory-mcp-server
+git clone https://github.com/emaharmony/rememberance-mcp.git
+cd rememberance-mcp
 
-# Install
-pip install -e .
+# Install (core + gate model support)
+pip install -e ".[gate]"
 
 # Or with uv (recommended)
-uv pip install -e .
+uv pip install -e ".[gate]"
 ```
 
 ### Model Setup
 
-The DilBERT gate model needs to be available at `~/.memory-mcp/models/distilbert-memory-gate/`.
-Copy your trained model there, or train one using `scripts/train-gate.py`.
+The DilBERT gate model needs to be available at `~/.remembrance/models/distilbert-memory-gate/`.
+Copy your trained model there, or train one using the scripts in `scripts/`.
 
 ## Usage
 
-### As MCP Server (stdio)
+### As MCP Server (stdio) — Claude Desktop, Cursor, etc.
 
-Add to your MCP client config (e.g., Claude Desktop):
+Add to your MCP client config:
 
 ```json
 {
   "mcpServers": {
-    "memory": {
+    "remembrance": {
       "command": "python",
-      "args": ["-m", "memory_mcp_server"],
+      "args": ["-m", "rememberance_mcp"],
       "env": {
-        "MEMORY_DB_PATH": "~/.memory-mcp/memory.db",
-        "GATE_MODEL_PATH": "~/.memory-mcp/models/distilbert-memory-gate"
+        "REMEMBRANCE_HOME": "~/.remembrance"
       }
     }
   }
@@ -68,12 +69,13 @@ Add to your MCP client config (e.g., Claude Desktop):
 ### As Python Library
 
 ```python
-from memory_mcp_server import MemoryPipeline
+from rememberance_mcp import MemoryPipeline
 
 pipeline = MemoryPipeline()
 
-# Capture a memory
+# Capture a memory (runs gate → extract → store automatically)
 result = pipeline.capture("Ema finished the SelfQuest audit", source="discord")
+# → {"id": "mem_1234_abc", "decision": "PERSIST", "category": "project", ...}
 
 # Search memories
 results = pipeline.search("SelfQuest PR status", limit=5)
@@ -85,7 +87,7 @@ pipeline.consolidate()
 ### As REST API
 
 ```bash
-python -m memory_mcp_server.api --port 8080
+python -m rememberance_mcp.api --port 8080
 
 # Then:
 curl -X POST http://localhost:8080/capture -d '{"text": "...", "source": "discord"}'
@@ -97,15 +99,30 @@ curl http://localhost:8080/search?q=SelfQuest&limit=5
 | Tool | Description |
 |------|-------------|
 | `memory_capture` | Gate → Extract → Store a piece of text |
-| `memory_search` | Semantic search across stored memories |
+| `memory_search` | Search stored memories by keyword and filters |
 | `memory_consolidate` | Run decay/promotion cycle |
 | `memory_get` | Get a specific memory by ID |
-| `memory_list` | List memories by category/tier |
+| `memory_delete` | Delete a specific memory by ID |
+
+## Architecture Deep Dive
+
+This project is designed as a **learning resource** for AI engineering. Every module
+includes detailed docstrings explaining the design patterns and why they're used:
+
+| Pattern | Where | Why |
+|---------|-------|-----|
+| Cascading Classifier | `gate.py` | Cheap model filters first, expensive model only when needed |
+| Pipeline (Chain of Responsibility) | `pipeline.py` | Each stage is testable, swappable, and independently fail-safe |
+| Repository | `store.py` | Storage logic isolated from business logic |
+| Strategy | `extract.py` | Swap extraction backends (Ollama, OpenAI, Claude) without changing pipeline |
+| Twelve-Factor Config | `config.py` | Environment-based configuration for portability |
+| Null Object | `extract.py` (StubExtractor) | Graceful fallback instead of crashes |
+| Producer-Consumer | `scripts/auto-capture-*.sh` | Non-blocking message capture via queue |
 
 ## Development
 
 ```bash
-# Install dev dependencies
+# Install with all dependencies
 pip install -e ".[dev]"
 
 # Run tests
@@ -117,4 +134,4 @@ ruff format .
 
 ## License
 
-MIT
+Apache 2.0 — See [LICENSE](LICENSE)

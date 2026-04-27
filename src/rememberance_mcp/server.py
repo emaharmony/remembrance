@@ -50,8 +50,8 @@ def create_server():
     """
     from mcp.server import Server
     from mcp.types import Tool, TextContent
-    from memory_mcp_server.config import Settings
-    from memory_mcp_server.pipeline import MemoryPipeline
+    from rememberance_mcp.config import Settings
+    from rememberance_mcp.pipeline import MemoryPipeline
 
     settings = Settings()
     pipeline = MemoryPipeline(settings=settings)
