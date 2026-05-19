@@ -365,10 +365,11 @@ class EntityStore:
         return self.search_entities("", entity_type=entity_type, limit=limit)
 
     def delete_entity(self, entity_id: str) -> bool:
-        """Delete an entity and all its edges."""
+        """Delete an entity and all its edges and alias table entries."""
         with sqlite3.connect(str(self.db_path)) as conn:
             conn.execute("DELETE FROM edges WHERE source_id = ? OR target_id = ?", (entity_id, entity_id))
             conn.execute("DELETE FROM memory_entities WHERE entity_id = ?", (entity_id,))
+            conn.execute("DELETE FROM entity_aliases WHERE entity_id = ?", (entity_id,))
             cursor = conn.execute("DELETE FROM entities WHERE id = ?", (entity_id,))
             return cursor.rowcount > 0
 

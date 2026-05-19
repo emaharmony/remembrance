@@ -127,8 +127,10 @@ class GraphWiring:
                 links += 1
 
         # Step 5: Always add "mentions" edges from each entity to the others
-        # This creates the base connectivity even without decision patterns
-        # Scale limit: cap at 10 detected entities to avoid O(n²) explosion
+        # This creates the base connectivity even without decision patterns.
+        # Scale limit: cap at 10 detected entities to avoid O(n²) explosion.
+        # NOTE: Step 3's non-mention edge loop is also O(n²) but entity count
+        # is naturally bounded by the detector (~15 known entities + regex).
         mention_limit = 10
         for i, (de, entity_id) in enumerate(zip(detected[:mention_limit], entity_ids[:mention_limit])):
             for j, (other_de, other_id) in enumerate(zip(detected[:mention_limit], entity_ids[:mention_limit])):
