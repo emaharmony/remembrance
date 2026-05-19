@@ -81,18 +81,18 @@ def search_env():
 
 class TestKeywordSearch:
     def test_fts5_search(self, search_env):
-        results = search_env["search"]._search_keyword("Prism domain-agnostic", None, 5)
+        results = search_env["search"]._search_keyword("Prism domain-agnostic", None, None, 5)
         assert len(results) > 0
         # Should find the Prism memory
         ids = [r["id"] for r in results]
         assert "mem_1" in ids
 
     def test_keyword_no_results(self, search_env):
-        results = search_env["search"]._search_keyword("xylophone banana", None, 5)
+        results = search_env["search"]._search_keyword("xylophone banana", None, None, 5)
         assert len(results) == 0
 
     def test_keyword_with_category(self, search_env):
-        results = search_env["search"]._search_keyword("Prism", "general", 5)
+        results = search_env["search"]._search_keyword("Prism", "general", None, 5)
         # "Prism" memories are in "project" category, not "general"
         ids = [r["id"] for r in results]
         assert "mem_1" not in ids

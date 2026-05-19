@@ -98,6 +98,8 @@ class EntityStore:
         """Create entity and edge tables if they don't exist."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(str(self.db_path)) as conn:
+            # Enable WAL mode for better concurrent read/write performance
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS entities (
                     id TEXT PRIMARY KEY,

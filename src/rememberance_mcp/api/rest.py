@@ -191,7 +191,7 @@ class RemembranceHandler(BaseHTTPRequestHandler):
         logger.debug(f"REST API: {format % args}")
 
 
-def start_rest_api(pipeline: MemoryPipeline, host: str = "0.0.0.0",
+def start_rest_api(pipeline: MemoryPipeline, host: str = "127.0.0.1",
                    port: int = 8788):
     """
     Start the REST API server.

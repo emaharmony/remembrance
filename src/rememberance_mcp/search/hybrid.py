@@ -79,7 +79,7 @@ class HybridSearch:
         self.entity_store = entity_store
 
     def search(self, query: str, mode: str = "balanced",
-               category: Optional[str] = None,
+               category: Optional[str] = None, tier: Optional[str] = None,
                limit: int = 10) -> list[dict]:
         """
         Search memories using hybrid retrieval.
@@ -93,19 +93,19 @@ class HybridSearch:
         Returns list of result dicts sorted by fused score.
         """
         if mode == "keyword":
-            return self._search_keyword(query, category, limit)
+            return self._search_keyword(query, category, tier, limit)
         elif mode == "vector":
             return self._search_vector(query, category, limit)
         elif mode == "balanced":
-            return self._search_balanced(query, category, limit)
+            return self._search_balanced(query, category, tier, limit)
         elif mode == "deep":
             # Future: add LLM query expansion
-            return self._search_balanced(query, category, limit)
+            return self._search_balanced(query, category, tier, limit)
         else:
-            return self._search_balanced(query, category, limit)
+            return self._search_balanced(query, category, tier, limit)
 
-    def _search_keyword(self, query: str, category: Optional[str],
-                        limit: int) -> list[dict]:
+    def _search_keyword(self, query: str, category: Optional[str] = None,
+                       tier: Optional[str] = None, limit: int = 10) -> list[dict]:
         """FTS5 full-text search only."""
         results = []
         with sqlite3.connect(str(self.db_path)) as conn:
@@ -124,6 +124,9 @@ class HybridSearch:
                 if category:
                     sql += " AND m.category = ?"
                     params.append(category)
+                if tier:
+                    sql += " AND m.tier = ?"
+                    params.append(tier)
 
                 now = time.time()
                 sql += " AND (m.expires_at IS NULL OR m.expires_at > ?)"
@@ -135,23 +138,37 @@ class HybridSearch:
                 rows = conn.execute(sql, params).fetchall()
                 for r in rows:
                     d = dict(r)
-                    d["score"] = -d.pop("fts_rank", 0)  # FTS rank is negative (lower = better)
+                    d["score"] = 1.0 / (1.0 + abs(d.pop("fts_rank", 0)))  # FTS rank is negative (lower = better)
                     d["sources"] = ["fts5"]
                     results.append(d)
             except Exception as e:
                 logger.warning(f"FTS5 search failed: {e}, using LIKE fallback")
                 # LIKE fallback
-                sql = "SELECT * FROM memories WHERE (content LIKE ? OR compiled_truth LIKE ?)"
-                params = [f"%{query}%", f"%{query}%"]
+                sql = "SELECT * FROM memories WHERE 1=1"
+                params = []
+
+                if query:
+                    sql += " AND (content LIKE ? OR compiled_truth LIKE ?)"
+                    params.extend([f"%{query}%", f"%{query}%"])
+
                 if category:
                     sql += " AND category = ?"
                     params.append(category)
+                if tier:
+                    sql += " AND tier = ?"
+                    params.append(tier)
+
+                now = time.time()
+                sql += " AND (expires_at IS NULL OR expires_at > ?)"
+                params.append(now)
+
                 sql += " ORDER BY accessed_at DESC LIMIT ?"
                 params.append(limit)
+
                 rows = conn.execute(sql, params).fetchall()
                 for r in rows:
                     d = dict(r)
-                    d["score"] = 1.0
+                    d["score"] = 0.5  # Lower than FTS5 matches
                     d["sources"] = ["like"]
                     results.append(d)
 
@@ -228,8 +245,8 @@ class HybridSearch:
         candidates.sort(key=lambda x: x["score"], reverse=True)
         return candidates[:limit]
 
-    def _search_balanced(self, query: str, category: Optional[str],
-                         limit: int) -> list[dict]:
+    def _search_balanced(self, query: str, category: Optional[str] = None,
+                         tier: Optional[str] = None, limit: int = 10) -> list[dict]:
         """
         Balanced hybrid search: FTS5 + vector + tier boost + graph + RRF.
 
@@ -242,7 +259,7 @@ class HybridSearch:
         6. Deduplicate and return top N
         """
         # Step 1: FTS5 search
-        fts_results = self._search_keyword(query, category, limit=30)
+        fts_results = self._search_keyword(query, category, tier, limit=30)
 
         # Step 2: Vector search (placeholder — needs embedding generation)
         # For V2.3, vector results come from search_with_embedding if caller has embedding

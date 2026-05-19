@@ -49,6 +49,7 @@ class MemoryStoreV2:
     def _migrate_v2(self):
         """Run V2 schema migration (idempotent)."""
         with sqlite3.connect(str(self.db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             # Add new columns to memories table
             migrations = [
                 ("ALTER TABLE memories ADD COLUMN compiled_truth TEXT DEFAULT ''", "compiled_truth"),

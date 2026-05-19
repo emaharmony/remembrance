@@ -58,6 +58,7 @@ class FactStore:
         """Create facts table if it doesn't exist."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(str(self.db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS facts (
                     id TEXT PRIMARY KEY,
