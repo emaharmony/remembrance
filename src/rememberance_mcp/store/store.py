@@ -266,3 +266,7 @@ class MemoryStore:
 
         logger.info(f"Consolidation: {results}")
         return results
+    def count(self) -> int:
+        """Return total number of memories (including expired)."""
+        with sqlite3.connect(str(self.db_path)) as conn:
+            return conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0]

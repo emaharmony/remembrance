@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Memory Pipeline — Orchestrates Gate → Extract → Store
 
@@ -32,6 +33,15 @@ from rememberance_mcp.gate import GateDecision
 from rememberance_mcp.registry import build_gate_chain
 from rememberance_mcp.extract import OllamaExtractor, StubExtractor, BaseExtractor
 from rememberance_mcp.store import MemoryStore
+from rememberance_mcp.store.edges import EntityStore
+from rememberance_mcp.store.memory import MemoryStoreV2
+from rememberance_mcp.store.facts import FactStore
+from rememberance_mcp.store.markdown import MarkdownSync
+from rememberance_mcp.graph.entity import EntityDetector
+from rememberance_mcp.graph.edges import GraphWiring
+from rememberance_mcp.graph.traversal import GraphTraversal
+from rememberance_mcp.search.hybrid import HybridSearch
+from rememberance_mcp.dream.cycle import DreamCycle
 from rememberance_mcp.gate_backends import GateMetrics
 
 logger = logging.getLogger(__name__)
@@ -87,6 +97,42 @@ class MemoryPipeline:
             persist_ttl=self.settings.PERSIST_TTL,
         )
 
+        # ── V2: Entity Store + Knowledge Graph ─────────────────
+        self.entity_store = EntityStore(
+            db_path=self.settings.DB_PATH.parent / "entities.db"
+        )
+
+        # ── V2: Memory Store V2 Extensions ────────────────────
+        self.store_v2 = MemoryStoreV2(v1_store=self.store)
+
+        # ── V2: Fact Store ────────────────────────────────────
+        self.fact_store = FactStore(
+            db_path=self.settings.DB_PATH.parent / "entities.db"
+        )
+
+        # ── V2: Graph Wiring + Entity Detection ──────────────
+        self.graph_wiring = GraphWiring(self.entity_store)
+        self.entity_detector = EntityDetector(entity_store=self.entity_store)
+
+        # ── V2: Graph Traversal ────────────────────────────────
+        self.graph_traversal = GraphTraversal(self.entity_store)
+
+        # ── V2: Hybrid Search ─────────────────────────────────
+        self.hybrid_search = HybridSearch(
+            db_path=self.settings.DB_PATH,
+            entity_store=self.entity_store,
+        )
+
+        # ── V2: Dream Cycle ──────────────────────────────────
+        self.dream_cycle = DreamCycle(
+            entity_store=self.entity_store,
+            memory_v2=self.store_v2,
+            ollama_base_url=self.settings.OLLAMA_BASE_URL,
+        )
+
+        # ── V2: Markdown Sync ────────────────────────────────
+        self.markdown_sync = MarkdownSync(self.entity_store)
+
     def capture(self, text: str, source: str = "cli",
                 category: Optional[str] = None, tier: Optional[str] = None) -> dict:
         """
@@ -133,6 +179,14 @@ class MemoryPipeline:
             source=source,
         )
 
+        # Stage 4: Graph Wiring (V2)
+        # Detect entities and wire them into the knowledge graph
+        wiring_result = None
+        try:
+            wiring_result = self.graph_wiring.wire(text, memory_id=mem_id, source=source)
+        except Exception as e:
+            logger.warning(f"Graph wiring failed (non-blocking): {e}")
+
         return {
             "id": mem_id,
             "decision": gate_result.decision.value,
@@ -143,6 +197,9 @@ class MemoryPipeline:
             "tier": final_tier,
             "summary": extraction.summary,
             "topics": extraction.key_topics,
+            "entities": wiring_result.get("entities", []) if wiring_result else [],
+            "new_entities": wiring_result.get("new_entities", []) if wiring_result else [],
+            "edges_created": len(wiring_result.get("edges", [])) if wiring_result else 0,
         }
 
     def search(self, query: str, category: Optional[str] = None,
@@ -173,3 +230,57 @@ class MemoryPipeline:
           - How confident is the gate overall? (avg_confidence)
         """
         return self.metrics.summary(hours=hours)
+
+    # ── V2 Methods ──────────────────────────────────────────────
+
+    def build_context(self, task: str, project: Optional[str] = None,
+                      agent: Optional[str] = None, limit: int = 10) -> dict:
+        """
+        Build context for a task using hybrid search + graph traversal.
+
+        This is what agents call before working on a task.
+        Returns relevant memories, entities, and open threads.
+        """
+        return self.hybrid_search.build_context(
+            query=task, project=project, agent=agent, limit=limit
+        )
+
+    def graph_query(self, entity_name: str, depth: int = 1,
+                    edge_types: Optional[list[str]] = None) -> dict:
+        """
+        Traverse the knowledge graph from an entity.
+        """
+        entity = self.entity_store.find_entity(entity_name)
+        if not entity:
+            return {"error": f"Entity '{entity_name}' not found"}
+        return self.graph_traversal.query(entity["id"], depth=depth, edge_types=edge_types)
+
+    def entity_get(self, name: str) -> Optional[dict]:
+        """
+        Get an entity by name (compiled truth + timeline).
+        """
+        return self.entity_store.find_entity(name)
+
+    def dream(self, phases: Optional[list[str]] = None,
+              dry_run: bool = False) -> dict:
+        """
+        Run the dream cycle.
+        """
+        return self.dream_cycle.run(phases=phases, dry_run=dry_run)
+
+    def export_brain(self) -> dict:
+        """
+        Export all entities to the brain markdown repo.
+        """
+        return self.markdown_sync.export_all()
+
+    def stats(self) -> dict:
+        """
+        Get comprehensive stats across all V2 subsystems.
+        """
+        return {
+            "memories": self.store.count(),
+            "entities": self.entity_store.stats(),
+            "facts": self.fact_store.stats(),
+            "v2": self.store_v2.v2_stats(),
+        }
