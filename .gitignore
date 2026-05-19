@@ -1,12 +1,64 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
 *.egg-info/
 dist/
 build/
 .eggs/
 *.egg
+
+# Virtual environments
 .env
 .venv
 venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
 .ruff_cache/
 .pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.log
+
+# Remembrance runtime data (lives in ~/.remembrance/)
+memory.db
+metrics.db
+*.db
+*.db-wal
+*.db-shm
+brain/
+
+# DilBERT model weights (large binary, download separately)
+models/
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+credentials.json
+secrets.json
+tokens.json
+
+# Local config overrides
+local.cfg
+local.json
