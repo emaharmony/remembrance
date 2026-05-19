@@ -1,0 +1,1 @@
+"""Store package — SQLite persistence, edges, facts, markdown sync."""

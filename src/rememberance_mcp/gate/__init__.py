@@ -1,0 +1,1 @@
+"""Gate package — Memory classification with pluggable backends."""

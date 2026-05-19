@@ -1,0 +1,1 @@
+"""Search package — Hybrid search: FTS5 + vector + graph + RRF fusion."""

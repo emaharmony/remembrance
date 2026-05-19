@@ -1,0 +1,1 @@
+"""Extract package — Structured data extraction from raw text."""
