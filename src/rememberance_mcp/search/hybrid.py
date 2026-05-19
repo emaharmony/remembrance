@@ -142,7 +142,10 @@ class HybridSearch:
                     d["sources"] = ["fts5"]
                     results.append(d)
             except Exception as e:
-                logger.warning(f"FTS5 search failed: {e}, using LIKE fallback")
+                if isinstance(e, sqlite3.OperationalError):
+                    logger.debug(f"FTS5 search failed (OperationalError): {e}, using LIKE fallback")
+                else:
+                    logger.warning(f"FTS5 search failed: {e}, using LIKE fallback")
                 # LIKE fallback
                 sql = "SELECT * FROM memories WHERE 1=1"
                 params = []
@@ -281,9 +284,11 @@ class HybridSearch:
                 seen.add(r["id"])
                 deduped.append(r)
 
-        # Attach entity information
-        for r in deduped:
-            r["entities"] = self._get_memory_entities(r["id"])
+        # Batch entity lookup: fetch all memory-entity links in one query
+        if deduped and self.entity_store:
+            entity_map = self._batch_get_memory_entities([r["id"] for r in deduped])
+            for r in deduped:
+                r["entities"] = entity_map.get(r["id"], [])
 
         return deduped[:limit]
 
@@ -384,6 +389,24 @@ class HybridSearch:
             return [e["id"] for e in entities]
         except Exception:
             return []
+
+    def _batch_get_memory_entities(self, memory_ids: list[str]) -> dict[str, list[str]]:
+        """Batch fetch memory-entity links. Single query instead of N+1."""
+        if not memory_ids or not self.entity_store:
+            return {}
+        result = {}
+        try:
+            with sqlite3.connect(str(self.entity_store.db_path)) as conn:
+                placeholders = ",".join("?" for _ in memory_ids)
+                rows = conn.execute(
+                    f"SELECT memory_id, entity_id FROM memory_entities WHERE memory_id IN ({placeholders})",
+                    memory_ids
+                ).fetchall()
+                for mem_id, entity_id in rows:
+                    result.setdefault(mem_id, []).append(entity_id)
+        except Exception:
+            pass
+        return result
 
     # ── Vector Utilities ─────────────────────────────────────────
 

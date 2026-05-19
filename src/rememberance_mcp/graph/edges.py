@@ -128,8 +128,10 @@ class GraphWiring:
 
         # Step 5: Always add "mentions" edges from each entity to the others
         # This creates the base connectivity even without decision patterns
-        for i, (de, entity_id) in enumerate(zip(detected, entity_ids)):
-            for j, (other_de, other_id) in enumerate(zip(detected, entity_ids)):
+        # Scale limit: cap at 10 detected entities to avoid O(n²) explosion
+        mention_limit = 10
+        for i, (de, entity_id) in enumerate(zip(detected[:mention_limit], entity_ids[:mention_limit])):
+            for j, (other_de, other_id) in enumerate(zip(detected[:mention_limit], entity_ids[:mention_limit])):
                 if i >= j:
                     continue  # avoid duplicates
                 created = self.entity_store.add_edge(

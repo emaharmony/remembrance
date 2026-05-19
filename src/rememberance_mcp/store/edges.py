@@ -143,6 +143,16 @@ class EntityStore:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_memory_entities_entity ON memory_entities(entity_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(type)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_entities_tier ON entities(tier)")
+
+            # Alias lookup table for O(1) alias resolution (replaces O(n) JSON scan)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS entity_aliases (
+                    alias TEXT NOT NULL,
+                    entity_id TEXT NOT NULL REFERENCES entities(id),
+                    UNIQUE(alias, entity_id)
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_entity_aliases_alias ON entity_aliases(alias)")
             logger.info(f"Entity store initialized at {self.db_path}")
 
     # ── Entity CRUD ───────────────────────────────────────────
@@ -184,6 +194,18 @@ class EntityStore:
                 now, now
             ))
 
+            # Insert into alias lookup table for O(1) resolution
+            name_lower = name.lower()
+            conn.execute(
+                "INSERT OR IGNORE INTO entity_aliases (alias, entity_id) VALUES (?, ?)",
+                (name_lower, slug)
+            )
+            for alias in (aliases or []):
+                conn.execute(
+                    "INSERT OR IGNORE INTO entity_aliases (alias, entity_id) VALUES (?, ?)",
+                    (alias.lower(), slug)
+                )
+
         logger.info(f"Created entity: {slug} (type={entity_type}, tier={tier})")
         return slug
 
@@ -207,7 +229,10 @@ class EntityStore:
 
         # Serialize list fields
         if "aliases" in updates and isinstance(updates["aliases"], list):
+            new_aliases = updates["aliases"]  # Keep list for alias table sync
             updates["aliases"] = json.dumps(updates["aliases"])
+        else:
+            new_aliases = None
 
         updates["updated_at"] = time.time()
 
@@ -218,6 +243,19 @@ class EntityStore:
             cursor = conn.execute(
                 f"UPDATE entities SET {set_clause} WHERE id = ?", values
             )
+            # Keep alias table in sync if aliases were updated
+            if new_aliases is not None:
+                conn.execute("DELETE FROM entity_aliases WHERE entity_id = ?", (entity_id,))
+                # Re-add name as alias
+                conn.execute(
+                    "INSERT OR IGNORE INTO entity_aliases (alias, entity_id) VALUES (?, ?)",
+                    (entity_id, entity_id)  # slug is the ID
+                )
+                for alias in new_aliases:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO entity_aliases (alias, entity_id) VALUES (?, ?)",
+                        (alias.lower(), entity_id)
+                    )
             return cursor.rowcount > 0
 
     def add_timeline_entry(self, entity_id: str, entry: str, source: str = "") -> bool:
@@ -272,11 +310,24 @@ class EntityStore:
                 d["aliases"] = json.loads(d.get("aliases", "[]"))
                 return d
 
-            # 3. Alias match — scan all entities' alias arrays
+            # 3. Alias match — O(1) lookup via normalized alias table
+            row = conn.execute(
+                "SELECT entity_id FROM entity_aliases WHERE alias = ?",
+                (name_lower,)
+            ).fetchone()
+            if row:
+                return self.get_entity(row[0])
+
+            # 4. Fallback: scan JSON aliases (for entities created before alias table)
             rows = conn.execute("SELECT id, aliases FROM entities").fetchall()
             for r in rows:
                 aliases = json.loads(r["aliases"])
                 if any(a.lower() == name_lower for a in aliases):
+                    # Backfill the alias table
+                    conn.execute(
+                        "INSERT OR IGNORE INTO entity_aliases (alias, entity_id) VALUES (?, ?)",
+                        (name_lower, r["id"])
+                    )
                     return self.get_entity(r["id"])
 
         return None
