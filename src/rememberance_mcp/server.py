@@ -195,6 +195,133 @@ def create_server():
                     },
                 },
             ),
+            # ── V2 Tools ──────────────────────────────────────────────
+            Tool(
+                name="memory_graph_query",
+                description=(
+                    "Traverse the knowledge graph from an entity. Returns "
+                    "connected entities and edges within N hops. Use this "
+                    "to find relationships: 'Show me everything related to Prism'"
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "entity": {
+                            "type": "string",
+                            "description": "Entity name or slug to start from",
+                        },
+                        "depth": {
+                            "type": "integer",
+                            "description": "Number of hops (default: 1)",
+                            "default": 1,
+                        },
+                        "edge_types": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Filter by edge types (optional)",
+                        },
+                    },
+                    "required": ["entity"],
+                },
+            ),
+            Tool(
+                name="memory_entity_get",
+                description=(
+                    "Get an entity's compiled truth and timeline. Returns "
+                    "the always-current synthesis of what we know about "
+                    "a person, project, concept, etc."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Entity name or slug",
+                        },
+                    },
+                    "required": ["name"],
+                },
+            ),
+            Tool(
+                name="memory_entity_search",
+                description=(
+                    "Search entities by name or type. Returns matching "
+                    "entities with their compiled truth."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query (entity name)",
+                        },
+                        "entity_type": {
+                            "type": "string",
+                            "description": "Filter by type: person, project, concept, tool, decision, preference",
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Max results (default: 10)",
+                            "default": 10,
+                        },
+                    },
+                    "required": ["query"],
+                },
+            ),
+            Tool(
+                name="memory_dream",
+                description=(
+                    "Trigger the dream cycle manually. Runs maintenance "
+                    "phases: entity sweep, backlink audit, truth re-synthesis, "
+                    "pattern detection, orphan detection, and purge."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "phases": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Specific phases to run (default: all)",
+                        },
+                        "dry_run": {
+                            "type": "boolean",
+                            "description": "Report without making changes (default: false)",
+                            "default": False,
+                        },
+                    },
+                },
+            ),
+            Tool(
+                name="memory_context_build",
+                description=(
+                    "Build context for a task. Returns relevant memories, "
+                    "entities, and open threads. This is what agents call "
+                    "before working on a task to load relevant context."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "task": {
+                            "type": "string",
+                            "description": "Task description to find context for",
+                        },
+                        "project": {
+                            "type": "string",
+                            "description": "Project name (optional)",
+                        },
+                        "agent": {
+                            "type": "string",
+                            "description": "Agent name (optional)",
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Max memories to return (default: 10)",
+                            "default": 10,
+                        },
+                    },
+                    "required": ["task"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -261,6 +388,68 @@ def create_server():
                 return [TextContent(
                     type="text",
                     text=json.dumps(metrics, indent=2),
+                )]
+
+            # ── V2 Tool Handlers ──────────────────────────────────────────
+            elif name == "memory_graph_query":
+                entity_name = arguments["entity"]
+                depth = arguments.get("depth", 1)
+                edge_types = arguments.get("edge_types")
+                # Find entity
+                entity = pipeline.entity_store.find_entity(entity_name)
+                if not entity:
+                    return [TextContent(type="text", text=f"Entity '{entity_name}' not found.")]
+                # Traverse
+                result = pipeline.entity_store.get_neighbors(
+                    entity["id"], depth=depth, edge_types=edge_types
+                )
+                return [TextContent(
+                    type="text",
+                    text=json.dumps(result, indent=2, default=str),
+                )]
+
+            elif name == "memory_entity_get":
+                entity_name = arguments["name"]
+                entity = pipeline.entity_store.find_entity(entity_name)
+                if not entity:
+                    return [TextContent(type="text", text=f"Entity '{entity_name}' not found.")]
+                return [TextContent(
+                    type="text",
+                    text=json.dumps(entity, indent=2, default=str),
+                )]
+
+            elif name == "memory_entity_search":
+                results = pipeline.entity_store.search_entities(
+                    query=arguments["query"],
+                    entity_type=arguments.get("entity_type"),
+                    limit=arguments.get("limit", 10),
+                )
+                if not results:
+                    return [TextContent(type="text", text="No entities found.")]
+                return [TextContent(
+                    type="text",
+                    text=json.dumps(results, indent=2, default=str),
+                )]
+
+            elif name == "memory_dream":
+                phases = arguments.get("phases")
+                dry_run = arguments.get("dry_run", False)
+                result = pipeline.dream_cycle.run(phases=phases, dry_run=dry_run)
+                return [TextContent(
+                    type="text",
+                    text=json.dumps(result, indent=2, default=str),
+                )]
+
+            elif name == "memory_context_build":
+                result = pipeline.build_context(
+                    task=arguments["task"],
+                    project=arguments.get("project"),
+                    agent=arguments.get("agent"),
+                    limit=arguments.get("limit", 10),
+                )
+                return [TextContent(
+                    type="text",
+                    text=json.dumps(result, indent=2, default=str),
                 )]
 
             else:
