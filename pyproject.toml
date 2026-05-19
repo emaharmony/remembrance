@@ -1,47 +1,15 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
+build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
-name = "remembrance-mcp"
-version = "0.1.0"
-description = "Universal memory system for AI agents via MCP"
+name = "rememberance-mcp"
+version = "2.0.0"
+description = "Universal memory system for AI agents — knowledge graph, compiled truth, dream cycle"
 readme = "README.md"
-requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
-authors = [{name = "Ema"}]
+requires-python = ">=3.10"
 
-dependencies = [
-    "mcp>=1.0.0",
-]
-
-[project.optional-dependencies]
-gate = [
-    "torch>=2.0",
-    "transformers>=4.35",
-]
-search = [
-    "sentence-transformers>=2.2",
-]
-api = [
-    "fastapi>=0.104",
-    "uvicorn>=0.24",
-]
-dev = [
-    "pytest",
-    "ruff",
-    "httpx",
-    "torch>=2.0",
-    "transformers>=4.35",
-    "sentence-transformers>=2.2",
-]
-
-[project.scripts]
-remembrance-mcp = "rememberance_mcp:main"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py310"
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

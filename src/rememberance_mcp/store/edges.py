@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Entity Store — Entity Registry + Typed Edges
 
@@ -162,8 +163,10 @@ class EntityStore:
         if existing:
             logger.debug(f"Entity already exists: {existing['id']} ({name})")
             # Add alias if name differs
-            if name.lower() != existing["name"].lower() and name not in existing.get("aliases", []):
-                existing_aliases = existing.get("aliases", [])
+            existing_aliases = existing.get("aliases", [])
+            name_lower = name.lower()
+            entity_name_lower = existing["name"].lower()
+            if name_lower != entity_name_lower and name not in existing_aliases:
                 existing_aliases.append(name)
                 self.update_entity(existing["id"], aliases=existing_aliases)
             return existing["id"]
@@ -396,17 +399,15 @@ class EntityStore:
         all_entities = []
         all_edges = []
 
+        # Add center entity first
+        center = self.get_entity(entity_id)
+        if center:
+            all_entities.append(center)
+        visited_entities.add(entity_id)
+
         for _ in range(depth):
             next_queue = []
             for eid in queue:
-                if eid in visited_entities:
-                    continue
-                visited_entities.add(eid)
-
-                entity = self.get_entity(eid)
-                if entity:
-                    all_entities.append(entity)
-
                 edges = self.get_edges(eid)
                 for edge in edges:
                     edge_key = (edge["source_id"], edge["target_id"], edge["edge_type"])
@@ -418,9 +419,13 @@ class EntityStore:
                     visited_edges.add(edge_key)
                     all_edges.append(edge)
 
-                    # Add neighbor to next queue
+                    # Add neighbor
                     neighbor = edge["target_id"] if edge["source_id"] == eid else edge["source_id"]
                     if neighbor not in visited_entities:
+                        visited_entities.add(neighbor)
+                        entity = self.get_entity(neighbor)
+                        if entity:
+                            all_entities.append(entity)
                         next_queue.append(neighbor)
 
             queue = next_queue

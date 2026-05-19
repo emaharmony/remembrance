@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Fact Store — Structured Claims with Provenance
 
@@ -95,7 +96,7 @@ class FactStore:
         Returns the fact ID.
         """
         now = time.time()
-        fact_id = f"fact_{int(now)}_{entity_id}_{claim_key}"
+        fact_id = f"fact_{int(now*1000)}_{entity_id}_{claim_key}"
 
         # Check for existing current fact
         current = self.get_current_fact(entity_id, claim_key)

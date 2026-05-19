@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Gate Backends Registry — Extensible Backend System
 

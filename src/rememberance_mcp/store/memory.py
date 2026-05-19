@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Memory Store V2 Extensions — Compiled Truth, Timeline, FTS5, Dream Log
 

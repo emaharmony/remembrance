@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Entity Detection — Extract Entities from Text (Zero-LLM)
 

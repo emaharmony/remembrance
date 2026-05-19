@@ -40,6 +40,7 @@ from rememberance_mcp.gate_backends import (
     GateFallbackChain, GateMetrics, GateMetric,
 )
 from rememberance_mcp.extract import BaseExtractor, OllamaExtractor, StubExtractor, ExtractionResult
+
 from rememberance_mcp.store import MemoryStore, Memory
 from rememberance_mcp.pipeline import MemoryPipeline
 from rememberance_mcp.server import create_server
