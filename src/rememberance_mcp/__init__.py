@@ -48,6 +48,19 @@ from rememberance_mcp.registry import (
     register_gate_backend, get_registered_backends, build_gate_chain,
 )
 
+# V2 exports
+from rememberance_mcp.store.edges import EntityStore, Entity, Edge
+from rememberance_mcp.store.facts import FactStore
+from rememberance_mcp.store.memory import MemoryStoreV2
+from rememberance_mcp.store.markdown import MarkdownSync
+from rememberance_mcp.graph.entity import EntityDetector, DetectedEntity
+from rememberance_mcp.graph.edges import GraphWiring
+from rememberance_mcp.graph.traversal import GraphTraversal
+from rememberance_mcp.search.hybrid import HybridSearch, SearchResult
+from rememberance_mcp.dream.cycle import DreamCycle, ALL_PHASES
+from rememberance_mcp.gate.ollama import OllamaGateBackend
+from rememberance_mcp.api.rest import start_rest_api
+
 __all__ = [
     "Settings",
     "MemoryGate", "GateDecision", "GateResult",
@@ -59,6 +72,11 @@ __all__ = [
     "MemoryPipeline",
     "create_server",
     "main",
+    # V2
+    "EntityStore", "Entity", "Edge", "FactStore", "MemoryStoreV2", "MarkdownSync",
+    "EntityDetector", "DetectedEntity", "GraphWiring", "GraphTraversal",
+    "HybridSearch", "SearchResult", "DreamCycle", "ALL_PHASES",
+    "OllamaGateBackend", "start_rest_api",
 ]
 
 
