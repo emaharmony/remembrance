@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import signal
 import sys
 import threading
 
@@ -30,6 +29,9 @@ from rememberance_mcp.pipeline import MemoryPipeline
 from rememberance_mcp.api.rest import start_rest_api
 
 logger = logging.getLogger(__name__)
+
+# Shutdown event — set by signal handler, checked by main loop
+_shutdown_event = threading.Event()
 
 
 def main():
@@ -70,22 +72,34 @@ def main():
             logger.warning(f"NATS subscriber failed to start: {e}")
             logger.info("Continuing in REST-only mode")
 
-    # Graceful shutdown handler
-    def shutdown(signum, frame):
-        logger.info("Shutting down Remembrance service...")
-        if nats_sub:
-            nats_sub.stop()
-        sys.exit(0)
+    # Graceful shutdown via signal — sets event instead of sys.exit
+    import signal
 
-    signal.signal(signal.SIGINT, shutdown)
-    signal.signal(signal.SIGTERM, shutdown)
+    def handle_shutdown(signum, frame):
+        logger.info("Shutdown signal received, cleaning up...")
+        _shutdown_event.set()
 
-    # Start REST API (blocking)
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+
+    # Start REST API (blocking until shutdown event is set)
     logger.info(f"Remembrance service ready — REST API on http://{args.host}:{args.port}")
     if nats_sub:
         logger.info("NATS subscriber active — listening for agent output events")
     try:
-        start_rest_api(pipeline, host=args.host, port=args.port)
+        # start_rest_api blocks; we wrap it to allow graceful shutdown
+        # by running in a thread and checking the shutdown event
+        api_thread = threading.Thread(
+            target=start_rest_api,
+            args=(pipeline, args.host, args.port),
+            daemon=True,
+            name="remembrance-rest",
+        )
+        api_thread.start()
+
+        # Wait for shutdown signal
+        _shutdown_event.wait()
+        logger.info("Shutting down Remembrance service...")
     except KeyboardInterrupt:
         logger.info("Interrupted")
     finally:

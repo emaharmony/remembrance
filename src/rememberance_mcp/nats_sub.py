@@ -30,15 +30,15 @@ from __future__ import annotations
 
 import json
 import logging
-import threading
-from typing import Optional, Callable
+from collections import deque
+from typing import Optional, Set
 
 from rememberance_mcp.pipeline import MemoryPipeline
 from rememberance_mcp.config import Settings
 
 logger = logging.getLogger(__name__)
 
-# Idempotency: track recent captures to avoid duplicates
+# Idempotency: bounded deque + set for O(1) append and O(1) lookup
 _MAX_SEEN = 1000
 
 
@@ -66,7 +66,8 @@ class NatsSubscriber:
         self.settings = settings or Settings()
         self._running = False
         self._thread: Optional[threading.Thread] = None
-        self._seen_keys: list[str] = []  # idempotency tracker
+        self._seen_deque: deque[str] = deque(maxlen=_MAX_SEEN)  # bounded FIFO
+        self._seen_set: Set[str] = set()  # O(1) lookup companion
         self._nc = None
 
     def start(self) -> None:
@@ -177,14 +178,16 @@ class NatsSubscriber:
         turn = payload.get("turn", 0)
         idem_key = f"{agent}:{session_id}:{turn}"
 
-        if idem_key in self._seen_keys:
+        if idem_key in self._seen_set:
             logger.debug(f"Skipping duplicate capture: {idem_key}")
             return
 
-        # Track the key (bounded list)
-        self._seen_keys.append(idem_key)
-        if len(self._seen_keys) > _MAX_SEEN:
-            self._seen_keys = self._seen_keys[-_MAX_SEEN:]
+        # Track the key (deque auto-evicts oldest, set is kept in sync)
+        if len(self._seen_deque) >= _MAX_SEEN:
+            evicted = self._seen_deque[0]  # oldest will be evicted by deque
+            self._seen_set.discard(evicted)
+        self._seen_deque.append(idem_key)
+        self._seen_set.add(idem_key)
 
         # Source tag
         source = f"nats:{agent}"
