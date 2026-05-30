@@ -384,6 +384,80 @@ pip install -e ".[gate]"
 pip install -e ".[dev]"
 ```
 
+### Windows Setup (PowerShell)
+
+Use PowerShell from the repo root:
+
+```powershell
+# Clone
+git clone https://github.com/emaharmony/rememberance-mcp.git
+cd rememberance-mcp
+
+# Create and activate a virtual environment
+py -3.10 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Install
+python -m pip install --upgrade pip
+pip install -e .
+
+# Or with uv
+uv pip install -e .
+```
+
+If PowerShell blocks virtualenv activation, allow local scripts for your user:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Set the default Remembrance data directory for the current shell:
+
+```powershell
+$env:REMEMBRANCE_HOME="$env:USERPROFILE\.remembrance"
+```
+
+To persist it for future PowerShell sessions:
+
+```powershell
+[Environment]::SetEnvironmentVariable("REMEMBRANCE_HOME", "$env:USERPROFILE\.remembrance", "User")
+```
+
+Pull the local Ollama models:
+
+```powershell
+ollama pull nemotron-3-nano:4b
+ollama pull nomic-embed-text
+```
+
+Run tests:
+
+```powershell
+pytest
+```
+
+Start the REST service without NATS:
+
+```powershell
+python -m rememberance_mcp.serve --no-nats
+```
+
+For MCP desktop clients on Windows, use the virtualenv interpreter path when the client does not inherit your activated shell:
+
+```json
+{
+  "mcpServers": {
+    "remembrance": {
+      "command": "D:\\_projects_\\rememberance-mcp\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "rememberance_mcp"],
+      "env": {
+        "REMEMBRANCE_HOME": "C:\\Users\\you\\.remembrance"
+      }
+    }
+  }
+}
+```
+
 ### Ollama Models
 
 Pull the required models:
