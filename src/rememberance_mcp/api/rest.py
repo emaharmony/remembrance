@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import logging
+import errno
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Optional
@@ -36,6 +37,28 @@ from typing import Optional
 from rememberance_mcp.pipeline import MemoryPipeline
 
 logger = logging.getLogger(__name__)
+
+
+CLIENT_DISCONNECT_WINERRORS = {10053, 10054}
+CLIENT_DISCONNECT_ERRNOS = {
+    errno.EPIPE,
+    errno.ECONNABORTED,
+    errno.ECONNRESET,
+}
+
+
+def _is_client_disconnect(error: BaseException) -> bool:
+    """Return True when the client closed the socket before we finished writing."""
+    if isinstance(error, (BrokenPipeError, ConnectionAbortedError, ConnectionResetError)):
+        return True
+    if not isinstance(error, OSError):
+        return False
+
+    winerror = getattr(error, "winerror", None)
+    if winerror in CLIENT_DISCONNECT_WINERRORS:
+        return True
+
+    return error.errno in CLIENT_DISCONNECT_ERRNOS
 
 
 class RemembranceHandler(BaseHTTPRequestHandler):
@@ -130,8 +153,11 @@ class RemembranceHandler(BaseHTTPRequestHandler):
                 self._json_response({"error": "Not found"}, status=404)
 
         except Exception as e:
+            if _is_client_disconnect(e):
+                logger.debug(f"GET {path} client disconnected before response was sent")
+                return
             logger.error(f"GET {path} error: {e}", exc_info=True)
-            self._json_response({"error": str(e)}, status=500)
+            self._safe_json_response({"error": str(e)}, status=500)
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -165,8 +191,11 @@ class RemembranceHandler(BaseHTTPRequestHandler):
                 self._json_response({"error": "Not found"}, status=404)
 
         except Exception as e:
+            if _is_client_disconnect(e):
+                logger.debug(f"POST {path} client disconnected before response was sent")
+                return
             logger.error(f"POST {path} error: {e}", exc_info=True)
-            self._json_response({"error": str(e)}, status=500)
+            self._safe_json_response({"error": str(e)}, status=500)
 
     # ── Helpers ────────────────────────────────────────────────
 
@@ -177,6 +206,16 @@ class RemembranceHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(json.dumps(data, indent=2, default=str).encode("utf-8"))
+
+    def _safe_json_response(self, data: dict, status: int = 200):
+        """Best-effort JSON response for error paths."""
+        try:
+            self._json_response(data, status=status)
+        except Exception as e:
+            if _is_client_disconnect(e):
+                logger.debug("Client disconnected before error response was sent")
+                return
+            raise
 
     def _read_body(self) -> dict:
         """Read and parse the request body as JSON."""

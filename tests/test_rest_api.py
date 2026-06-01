@@ -12,10 +12,20 @@ from threading import Thread
 
 from rememberance_mcp.pipeline import MemoryPipeline
 from rememberance_mcp.config import Settings
-from rememberance_mcp.api.rest import RemembranceHandler, start_rest_api
+from rememberance_mcp.api.rest import RemembranceHandler, start_rest_api, _is_client_disconnect
 from rememberance_mcp.gate_backends import HeuristicBackend, GateFallbackChain
 import urllib.request
 import urllib.error
+
+
+class _DisconnectingHandler:
+    def _json_response(self, data, status=200):
+        raise ConnectionAbortedError(10053, "connection aborted")
+
+
+class _FailingHandler:
+    def _json_response(self, data, status=200):
+        raise RuntimeError("response failed")
 
 
 @pytest.fixture
@@ -59,6 +69,28 @@ class TestHealthEndpoint:
         data = json.loads(resp.read())
         assert data["status"] == "ok"
         assert data["version"] == "2.0.0"
+
+
+class TestClientDisconnectHandling:
+    def test_connection_aborted_is_client_disconnect(self):
+        error = ConnectionAbortedError(10053, "connection aborted")
+
+        assert _is_client_disconnect(error)
+
+    def test_safe_json_response_suppresses_client_disconnect(self):
+        RemembranceHandler._safe_json_response(
+            _DisconnectingHandler(),
+            {"error": "request failed"},
+            status=500,
+        )
+
+    def test_safe_json_response_raises_non_disconnect_errors(self):
+        with pytest.raises(RuntimeError):
+            RemembranceHandler._safe_json_response(
+                _FailingHandler(),
+                {"error": "request failed"},
+                status=500,
+            )
 
 
 class TestStatsEndpoint:
