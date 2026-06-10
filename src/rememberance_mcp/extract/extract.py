@@ -147,7 +147,7 @@ Output JSON:
                 key_topics=data.get("key_topics", []),
             )
 
-        except (json.JSONDecodeError, urllib.error.URLError, KeyError) as e:
+        except (json.JSONDecodeError, urllib.error.URLError, KeyError, TimeoutError, OSError) as e:
             # EXTRACTION FAILURE PATTERN:
             # When extraction fails, we DON'T lose the data.
             # We fall back to storing raw text with sensible defaults.

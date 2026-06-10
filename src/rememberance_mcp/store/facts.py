@@ -32,10 +32,22 @@ INSPIRED BY gbrain's four database primitives:
 import sqlite3
 import time
 import logging
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _connect(db_path: Path):
+    """Open a SQLite connection that commits/rolls back and closes on Windows."""
+    conn = sqlite3.connect(str(db_path))
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 class FactStore:
@@ -57,7 +69,7 @@ class FactStore:
     def _init_table(self):
         """Create facts table if it doesn't exist."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS facts (
@@ -102,7 +114,7 @@ class FactStore:
         # Check for existing current fact
         current = self.get_current_fact(entity_id, claim_key)
 
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             if current and current["claim_value"] != claim_value:
                 # New value contradicts old → supersede the old one
                 conn.execute(
@@ -127,7 +139,7 @@ class FactStore:
 
     def get_current_fact(self, entity_id: str, claim_key: str) -> Optional[dict]:
         """Get the current (unsuperseded) fact for an entity + key."""
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute("""
                 SELECT * FROM facts
@@ -138,7 +150,7 @@ class FactStore:
 
     def get_entity_facts(self, entity_id: str, current_only: bool = True) -> list[dict]:
         """Get all facts for an entity. If current_only, exclude superseded."""
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             sql = "SELECT * FROM facts WHERE entity_id = ?"
             if current_only:
@@ -149,7 +161,7 @@ class FactStore:
 
     def get_fact_history(self, entity_id: str, claim_key: str) -> list[dict]:
         """Get the full history of a claim (including superseded)."""
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute("""
                 SELECT * FROM facts
@@ -165,7 +177,7 @@ class FactStore:
 
         This is a signal for the dream cycle to resolve.
         """
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             # Find claim_keys with multiple distinct current values
             rows = conn.execute("""
@@ -191,7 +203,7 @@ class FactStore:
 
     def stats(self) -> dict:
         """Get fact store statistics."""
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             total = conn.execute("SELECT COUNT(*) FROM facts").fetchone()[0]
             current = conn.execute(
                 "SELECT COUNT(*) FROM facts WHERE superseded_at IS NULL"

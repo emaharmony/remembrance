@@ -6,6 +6,7 @@ import sqlite3
 import tempfile
 import time
 import json
+from contextlib import closing
 from pathlib import Path
 import pytest
 from rememberance_mcp.search.hybrid import HybridSearch, TIER_BOOST
@@ -20,7 +21,7 @@ def search_env():
         entity_db = Path(tmpdir) / "test_entities.db"
 
         # Create memories table + FTS5
-        with sqlite3.connect(str(db_path)) as conn:
+        with closing(sqlite3.connect(str(db_path))) as conn, conn:
             conn.execute("""
                 CREATE TABLE memories (
                     id TEXT PRIMARY KEY, content TEXT NOT NULL,

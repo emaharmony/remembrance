@@ -29,7 +29,9 @@ def pipeline():
         pipe = MemoryPipeline(settings=settings)
         # Override gate to heuristic-only for fast tests (no Ollama/DilBERT calls)
         from rememberance_mcp.gate_backends import HeuristicBackend, GateFallbackChain
+        from rememberance_mcp.extract import StubExtractor
         pipe.gate_chain = GateFallbackChain([HeuristicBackend()])
+        pipe.extractor = StubExtractor()
         yield pipe
 
 

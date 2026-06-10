@@ -28,6 +28,7 @@ import sqlite3
 import struct
 import time
 import logging
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
@@ -35,6 +36,17 @@ from dataclasses import dataclass
 from rememberance_mcp.store.edges import EntityStore
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _connect(db_path: Path):
+    """Open a SQLite connection that commits/rolls back and closes on Windows."""
+    conn = sqlite3.connect(str(db_path))
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 # ── Tier Boost Multipliers ─────────────────────────────────────
@@ -108,7 +120,7 @@ class HybridSearch:
                        tier: Optional[str] = None, limit: int = 10) -> list[dict]:
         """FTS5 full-text search only."""
         results = []
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             try:
                 # Escape FTS5 special chars: hyphens become spaces, quotes escaped
@@ -210,7 +222,7 @@ class HybridSearch:
             return []
 
         candidates = []
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with _connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             now = time.time()
 
@@ -396,7 +408,7 @@ class HybridSearch:
             return {}
         result = {}
         try:
-            with sqlite3.connect(str(self.entity_store.db_path)) as conn:
+            with _connect(self.entity_store.db_path) as conn:
                 placeholders = ",".join("?" for _ in memory_ids)
                 rows = conn.execute(
                     f"SELECT memory_id, entity_id FROM memory_entities WHERE memory_id IN ({placeholders})",

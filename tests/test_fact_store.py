@@ -4,6 +4,7 @@ Tests for FactStore — Structured Claims with Provenance
 
 import tempfile
 import time
+from contextlib import closing
 from pathlib import Path
 import pytest
 from rememberance_mcp.store.facts import FactStore
@@ -15,7 +16,7 @@ def fact_store():
         db_path = Path(tmpdir) / "test_facts.db"
         # Need entities table for FK constraint
         import sqlite3
-        with sqlite3.connect(str(db_path)) as conn:
+        with closing(sqlite3.connect(str(db_path))) as conn, conn:
             conn.execute("""
                 CREATE TABLE entities (
                     id TEXT PRIMARY KEY, name TEXT NOT NULL,
@@ -82,7 +83,7 @@ class TestContradictions:
         # Create two conflicting current facts by inserting directly
         now = time.time()
         import sqlite3
-        with sqlite3.connect(str(fact_store.db_path)) as conn:
+        with closing(sqlite3.connect(str(fact_store.db_path))) as conn, conn:
             conn.execute(
                 "INSERT INTO facts (id, entity_id, claim_key, claim_value, source, confidence, observed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 ("f1", "ema", "role", "developer", "s1", 0.9, now)

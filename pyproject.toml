@@ -5,13 +5,32 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rememberance-mcp"
 version = "2.0.0"
-description = "Universal memory system for AI agents — knowledge graph, compiled truth, dream cycle"
+description = "Universal memory system for AI agents: knowledge graph, compiled truth, dream cycle"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
+mcp = ["mcp>=1.0.0"]
 nats = ["nats-py>=2.0.0"]
+gate = [
+    "torch>=2.0.0",
+    "transformers>=4.0.0",
+]
+dev = [
+    "pytest>=8.0.0",
+]
+all = [
+    "mcp>=1.0.0",
+    "nats-py>=2.0.0",
+    "torch>=2.0.0",
+    "transformers>=4.0.0",
+    "pytest>=8.0.0",
+]
+
+[project.scripts]
+rememberance-mcp = "rememberance_mcp:main"
+rememberance-service = "rememberance_mcp.serve:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

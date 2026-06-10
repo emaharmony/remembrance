@@ -40,6 +40,8 @@ def api_server():
         )
         pipeline = MemoryPipeline(settings=settings)
         pipeline.gate_chain = GateFallbackChain([HeuristicBackend()])
+        from rememberance_mcp.extract import StubExtractor
+        pipeline.extractor = StubExtractor()
 
         # Find an available port
         import socket
