@@ -266,21 +266,61 @@ Use REST only:
 python -m rememberance_mcp.serve --no-nats
 ```
 
-### DistilBERT Gate
+### DilBert v3 Gate
 
-Install the gate dependencies:
+The DilBert gate is a fine-tuned DistilBertForSequenceClassification model that classifies text into four memory tiers: `skip`, `cold`, `active`, and `persist`. It runs locally with no API keys required.
+
+**Model stats:** 90.1% accuracy, macro F1 0.88, PERSIST recall 0.91.
+
+#### Install gate dependencies
 
 ```bash
 pip install -e ".[gate]"
 ```
 
-Place the trained model at:
+#### Download the model
 
-```text
-~/.remembrance/models/distilbert-memory-gate/
+Use the included download script:
+
+```bash
+bash scripts/download-dilbert.sh
 ```
 
-Without that model, the default chain falls back to the heuristic backend.
+Or download to a custom path:
+
+```bash
+bash scripts/download-dilbert.sh /path/to/models/distilbert-memory-gate
+```
+
+The script downloads four files (~256MB total) to `~/.remembrance/models/distilbert-memory-gate/`:
+
+```text
+config.json           — model architecture config (1KB)
+tokenizer.json        — tokenizer vocabulary (696KB)
+tokenizer_config.json — tokenizer settings (1KB)
+model.safetensors     — fine-tuned weights (255MB)
+```
+
+**Manual download:** If the script fails (e.g., unstable connection on the 255MB model file), download directly from the [GitHub release](https://github.com/emaharmony/rememberance-mcp/releases/tag/v3.0-dilbert-gate) and place the files in `~/.remembrance/models/distilbert-memory-gate/`.
+
+#### Verify installation
+
+```bash
+python -c "
+from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
+model = DistilBertForSequenceClassification.from_pretrained('~/.remembrance/models/distilbert-memory-gate')
+tokenizer = DistilBertTokenizer.from_pretrained('~/.remembrance/models/distilbert-memory-gate')
+print('Model loaded successfully:', model.config.id2label)
+"
+```
+
+Expected output:
+
+```text
+Model loaded successfully: {0: 'skip', 1: 'cold', 2: 'active', 3: 'persist'}
+```
+
+Without the model, the default gate chain (`dilbert,heuristic`) falls back to the heuristic backend automatically.
 
 ### OpenAI Gate
 
