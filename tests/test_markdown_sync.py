@@ -6,8 +6,8 @@ import tempfile
 import time
 from pathlib import Path
 import pytest
-from rememberance_mcp.store.edges import EntityStore
-from rememberance_mcp.store.markdown import MarkdownSync
+from remembrance_mcp.store.edges import EntityStore
+from remembrance_mcp.store.markdown import MarkdownSync
 
 
 @pytest.fixture

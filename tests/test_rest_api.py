@@ -10,10 +10,10 @@ import pytest
 from http.server import HTTPServer
 from threading import Thread
 
-from rememberance_mcp.pipeline import MemoryPipeline
-from rememberance_mcp.config import Settings
-from rememberance_mcp.api.rest import RemembranceHandler, start_rest_api, _is_client_disconnect
-from rememberance_mcp.gate_backends import HeuristicBackend, GateFallbackChain
+from remembrance_mcp.pipeline import MemoryPipeline
+from remembrance_mcp.config import Settings
+from remembrance_mcp.api.rest import RemembranceHandler, start_rest_api, _is_client_disconnect
+from remembrance_mcp.gate_backends import HeuristicBackend, GateFallbackChain
 import urllib.request
 import urllib.error
 
@@ -40,7 +40,7 @@ def api_server():
         )
         pipeline = MemoryPipeline(settings=settings)
         pipeline.gate_chain = GateFallbackChain([HeuristicBackend()])
-        from rememberance_mcp.extract import StubExtractor
+        from remembrance_mcp.extract import StubExtractor
         pipeline.extractor = StubExtractor()
 
         # Find an available port

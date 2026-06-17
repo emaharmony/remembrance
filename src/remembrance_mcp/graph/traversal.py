@@ -19,7 +19,7 @@ connections that embeddings can't see.
 """
 
 import logging
-from rememberance_mcp.store.edges import EntityStore
+from remembrance_mcp.store.edges import EntityStore
 
 logger = logging.getLogger(__name__)
 

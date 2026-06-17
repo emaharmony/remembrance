@@ -28,21 +28,21 @@ WHY PIPELINE?
 import logging
 from pathlib import Path
 from typing import Optional
-from rememberance_mcp.config import Settings
-from rememberance_mcp.gate import GateDecision
-from rememberance_mcp.registry import build_gate_chain
-from rememberance_mcp.extract import OllamaExtractor, StubExtractor, BaseExtractor
-from rememberance_mcp.store import MemoryStore
-from rememberance_mcp.store.edges import EntityStore
-from rememberance_mcp.store.memory import MemoryStoreV2
-from rememberance_mcp.store.facts import FactStore
-from rememberance_mcp.store.markdown import MarkdownSync
-from rememberance_mcp.graph.entity import EntityDetector
-from rememberance_mcp.graph.edges import GraphWiring
-from rememberance_mcp.graph.traversal import GraphTraversal
-from rememberance_mcp.search.hybrid import HybridSearch
-from rememberance_mcp.dream.cycle import DreamCycle
-from rememberance_mcp.gate_backends import GateMetrics
+from remembrance_mcp.config import Settings
+from remembrance_mcp.gate import GateDecision
+from remembrance_mcp.registry import build_gate_chain
+from remembrance_mcp.extract import OllamaExtractor, StubExtractor, BaseExtractor
+from remembrance_mcp.store import MemoryStore
+from remembrance_mcp.store.edges import EntityStore
+from remembrance_mcp.store.memory import MemoryStoreV2
+from remembrance_mcp.store.facts import FactStore
+from remembrance_mcp.store.markdown import MarkdownSync
+from remembrance_mcp.graph.entity import EntityDetector
+from remembrance_mcp.graph.edges import GraphWiring
+from remembrance_mcp.graph.traversal import GraphTraversal
+from remembrance_mcp.search.hybrid import HybridSearch
+from remembrance_mcp.dream.cycle import DreamCycle
+from remembrance_mcp.gate_backends import GateMetrics
 
 logger = logging.getLogger(__name__)
 

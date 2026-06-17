@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
 
-from rememberance_mcp.store.edges import EntityStore
+from remembrance_mcp.store.edges import EntityStore
 
 logger = logging.getLogger(__name__)
 

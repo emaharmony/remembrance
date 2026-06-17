@@ -88,7 +88,7 @@ class MemoryGate:
             return
 
         # Lazy imports — don't import torch/transformers until we actually need them.
-        # This means `import rememberance_mcp` doesn't take 10 seconds.
+        # This means `import remembrance_mcp` doesn't take 10 seconds.
         import torch
         from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 

@@ -7,7 +7,7 @@ import time
 from contextlib import closing
 from pathlib import Path
 import pytest
-from rememberance_mcp.store.facts import FactStore
+from remembrance_mcp.store.facts import FactStore
 
 
 @pytest.fixture

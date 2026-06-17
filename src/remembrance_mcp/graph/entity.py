@@ -62,7 +62,7 @@ KNOWN_ENTITIES = {
 
     # Projects
     "prism": {"type": "project", "aliases": ["ai-hedge-prism"]},
-    "remembrance": {"type": "project", "aliases": ["rememberance-mcp", "memory-mcp"]},
+    "remembrance": {"type": "project", "aliases": ["remembrance-mcp", "memory-mcp"]},
     "eggventura": {"type": "project", "aliases": ["pet tycoon"]},
     "bassbook": {"type": "project", "aliases": []},
     "openclaw": {"type": "project", "aliases": []},

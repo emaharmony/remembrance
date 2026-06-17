@@ -33,33 +33,33 @@ DESIGN DECISIONS:
   Runs locally via Ollama, no API key needed.
 """
 
-from rememberance_mcp.config import Settings
-from rememberance_mcp.gate import MemoryGate, GateDecision, GateResult
-from rememberance_mcp.gate_backends import (
+from remembrance_mcp.config import Settings
+from remembrance_mcp.gate import MemoryGate, GateDecision, GateResult
+from remembrance_mcp.gate_backends import (
     BaseGateBackend, DilBERTBackend, HeuristicBackend, OpenAIBackend,
     GateFallbackChain, GateMetrics, GateMetric,
 )
-from rememberance_mcp.extract import BaseExtractor, OllamaExtractor, StubExtractor, ExtractionResult
+from remembrance_mcp.extract import BaseExtractor, OllamaExtractor, StubExtractor, ExtractionResult
 
-from rememberance_mcp.store import MemoryStore, Memory
-from rememberance_mcp.pipeline import MemoryPipeline
-from rememberance_mcp.server import create_server
-from rememberance_mcp.registry import (
+from remembrance_mcp.store import MemoryStore, Memory
+from remembrance_mcp.pipeline import MemoryPipeline
+from remembrance_mcp.server import create_server
+from remembrance_mcp.registry import (
     register_gate_backend, get_registered_backends, build_gate_chain,
 )
 
 # V2 exports
-from rememberance_mcp.store.edges import EntityStore, Entity, Edge
-from rememberance_mcp.store.facts import FactStore
-from rememberance_mcp.store.memory import MemoryStoreV2
-from rememberance_mcp.store.markdown import MarkdownSync
-from rememberance_mcp.graph.entity import EntityDetector, DetectedEntity
-from rememberance_mcp.graph.edges import GraphWiring
-from rememberance_mcp.graph.traversal import GraphTraversal
-from rememberance_mcp.search.hybrid import HybridSearch, SearchResult
-from rememberance_mcp.dream.cycle import DreamCycle, ALL_PHASES
-from rememberance_mcp.gate.ollama import OllamaGateBackend
-from rememberance_mcp.api.rest import start_rest_api
+from remembrance_mcp.store.edges import EntityStore, Entity, Edge
+from remembrance_mcp.store.facts import FactStore
+from remembrance_mcp.store.memory import MemoryStoreV2
+from remembrance_mcp.store.markdown import MarkdownSync
+from remembrance_mcp.graph.entity import EntityDetector, DetectedEntity
+from remembrance_mcp.graph.edges import GraphWiring
+from remembrance_mcp.graph.traversal import GraphTraversal
+from remembrance_mcp.search.hybrid import HybridSearch, SearchResult
+from remembrance_mcp.dream.cycle import DreamCycle, ALL_PHASES
+from remembrance_mcp.gate.ollama import OllamaGateBackend
+from remembrance_mcp.api.rest import start_rest_api
 
 __all__ = [
     "Settings",
@@ -81,7 +81,7 @@ __all__ = [
 
 
 def main():
-    """Entry point for the `rememberance-mcp` stdio MCP server.
+    """Entry point for the `remembrance-mcp` stdio MCP server.
 
     Wires the MCP server to stdio transport. `Server.run()` requires the
     read/write streams and initialization options, so we open the stdio
@@ -93,7 +93,7 @@ def main():
         import mcp.server.stdio
         from mcp.server import NotificationOptions
         from mcp.server.models import InitializationOptions
-        from rememberance_mcp.config import Settings
+        from remembrance_mcp.config import Settings
 
         settings = Settings.get()
         server = create_server()

@@ -41,7 +41,7 @@ from pathlib import Path
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
-from rememberance_mcp.gate import GateDecision, GateResult
+from remembrance_mcp.gate import GateDecision, GateResult
 
 logger = logging.getLogger(__name__)
 

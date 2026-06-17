@@ -21,8 +21,8 @@ separate task.
 
 import logging
 from typing import Optional
-from rememberance_mcp.graph.entity import EntityDetector, DetectedEntity
-from rememberance_mcp.store.edges import EntityStore
+from remembrance_mcp.graph.entity import EntityDetector, DetectedEntity
+from remembrance_mcp.store.edges import EntityStore
 
 logger = logging.getLogger(__name__)
 

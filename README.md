@@ -2,7 +2,7 @@
 
 Universal memory for AI agents. Remembrance stores useful context in SQLite, links entities into a small knowledge graph, exposes memory through MCP and REST, and can run locally without API keys.
 
-The Python package name is `rememberance-mcp` and the import/module path is `rememberance_mcp`.
+The Python package name is `remembrance-mcp` and the import/module path is `remembrance_mcp`.
 
 ## What It Provides
 
@@ -20,15 +20,15 @@ The Python package name is `rememberance-mcp` and the import/module path is `rem
 - `pip` or `uv`.
 - Optional: Ollama for LLM-based extraction and dream phases.
 - Optional: a local DistilBERT gate model if you install the `gate` extra.
-- Optional: NATS if you want event-bus capture through `rememberance_mcp.serve`.
+- Optional: NATS if you want event-bus capture through `remembrance_mcp.serve`.
 
 No API key is required for the default local/heuristic path. The OpenAI gate backend is available only when `OPENAI_API_KEY` is set and `REMEMBRANCE_GATE_BACKENDS` includes `openai`.
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/emaharmony/rememberance-mcp.git
-cd rememberance-mcp
+git clone https://github.com/emaharmony/remembrance-mcp.git
+cd remembrance-mcp
 
 python -m venv .venv
 source .venv/bin/activate
@@ -47,8 +47,8 @@ pip install -e ".[dev]"
 On Windows PowerShell:
 
 ```powershell
-git clone https://github.com/emaharmony/rememberance-mcp.git
-cd rememberance-mcp
+git clone https://github.com/emaharmony/remembrance-mcp.git
+cd remembrance-mcp
 
 py -3.10 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -79,19 +79,19 @@ Current vector query generation is not wired into the default search path, so `n
 Start REST only:
 
 ```bash
-python -m rememberance_mcp.api
+python -m remembrance_mcp.api
 ```
 
 Equivalent service command, with NATS disabled:
 
 ```bash
-python -m rememberance_mcp.serve --no-nats
+python -m remembrance_mcp.serve --no-nats
 ```
 
 Custom host and port:
 
 ```bash
-python -m rememberance_mcp.api --host 127.0.0.1 --port 9000
+python -m remembrance_mcp.api --host 127.0.0.1 --port 9000
 ```
 
 Try the API:
@@ -117,7 +117,7 @@ pip install -e ".[mcp]"
 Then run:
 
 ```bash
-python -m rememberance_mcp
+python -m remembrance_mcp
 ```
 
 Example MCP client configuration:
@@ -127,7 +127,7 @@ Example MCP client configuration:
   "mcpServers": {
     "remembrance": {
       "command": "python",
-      "args": ["-m", "rememberance_mcp"],
+      "args": ["-m", "remembrance_mcp"],
       "env": {
         "REMEMBRANCE_HOME": "~/.remembrance"
       }
@@ -142,8 +142,8 @@ On Windows, use the virtualenv interpreter if your MCP client does not inherit t
 {
   "mcpServers": {
     "remembrance": {
-      "command": "D:\\_projects_\\rememberance-mcp\\.venv\\Scripts\\python.exe",
-      "args": ["-m", "rememberance_mcp"],
+      "command": "D:\\_projects_\\remembrance-mcp\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "remembrance_mcp"],
       "env": {
         "REMEMBRANCE_HOME": "C:\\Users\\you\\.remembrance"
       }
@@ -155,7 +155,7 @@ On Windows, use the virtualenv interpreter if your MCP client does not inherit t
 ### Python Library
 
 ```python
-from rememberance_mcp import MemoryPipeline
+from remembrance_mcp import MemoryPipeline
 
 pipeline = MemoryPipeline()
 result = pipeline.capture(
@@ -176,7 +176,7 @@ Environment variables read by the current code:
 | `REMEMBRANCE_GATE_BACKENDS` | `dilbert,heuristic` | Ordered gate backend list, for example `heuristic` or `openai,heuristic`. |
 | `OPENAI_API_KEY` | unset | Enables the optional OpenAI gate backend when requested. |
 
-Other settings are available through `rememberance_mcp.config.Settings`:
+Other settings are available through `remembrance_mcp.config.Settings`:
 
 | Setting | Default |
 | --- | --- |
@@ -189,7 +189,7 @@ Other settings are available through `rememberance_mcp.config.Settings`:
 | `ACTIVE_TTL` | `2592000` seconds |
 | `PERSIST_TTL` | `-1`, meaning no expiry |
 
-REST host, REST port, NATS URL, and NATS enablement are CLI arguments on `rememberance_mcp.api` or `rememberance_mcp.serve`; they are not environment variables in the current implementation.
+REST host, REST port, NATS URL, and NATS enablement are CLI arguments on `remembrance_mcp.api` or `remembrance_mcp.serve`; they are not environment variables in the current implementation.
 
 Default data layout:
 
@@ -257,13 +257,13 @@ pip install -e ".[nats]"
 Run the combined REST service and NATS subscriber:
 
 ```bash
-python -m rememberance_mcp.serve --nats nats://localhost:4222
+python -m remembrance_mcp.serve --nats nats://localhost:4222
 ```
 
 Use REST only:
 
 ```bash
-python -m rememberance_mcp.serve --no-nats
+python -m remembrance_mcp.serve --no-nats
 ```
 
 ### DilBert v3 Gate
@@ -301,7 +301,7 @@ tokenizer_config.json — tokenizer settings (1KB)
 model.safetensors     — fine-tuned weights (255MB)
 ```
 
-**Manual download:** If the script fails (e.g., unstable connection on the 255MB model file), download directly from the [GitHub release](https://github.com/emaharmony/rememberance-mcp/releases/tag/v3.0-dilbert-gate) and place the files in `~/.remembrance/models/distilbert-memory-gate/`.
+**Manual download:** If the script fails (e.g., unstable connection on the 255MB model file), download directly from the [GitHub release](https://github.com/emaharmony/remembrance-mcp/releases/tag/v3.0-dilbert-gate) and place the files in `~/.remembrance/models/distilbert-memory-gate/`.
 
 #### Verify installation
 

@@ -11,9 +11,9 @@ import tempfile
 import time
 from pathlib import Path
 import pytest
-from rememberance_mcp.pipeline import MemoryPipeline
-from rememberance_mcp.config import Settings
-from rememberance_mcp.gate import MemoryGate
+from remembrance_mcp.pipeline import MemoryPipeline
+from remembrance_mcp.config import Settings
+from remembrance_mcp.gate import MemoryGate
 
 
 @pytest.fixture
@@ -28,8 +28,8 @@ def pipeline():
         )
         pipe = MemoryPipeline(settings=settings)
         # Override gate to heuristic-only for fast tests (no Ollama/DilBERT calls)
-        from rememberance_mcp.gate_backends import HeuristicBackend, GateFallbackChain
-        from rememberance_mcp.extract import StubExtractor
+        from remembrance_mcp.gate_backends import HeuristicBackend, GateFallbackChain
+        from remembrance_mcp.extract import StubExtractor
         pipe.gate_chain = GateFallbackChain([HeuristicBackend()])
         pipe.extractor = StubExtractor()
         yield pipe

@@ -16,7 +16,7 @@ set -euo pipefail
 DEFAULT_DIR="${HOME}/.remembrance/models/distilbert-memory-gate"
 TARGET_DIR="${1:-$DEFAULT_DIR}"
 RELEASE_TAG="v3.0-dilbert-gate"
-REPO="emaharmony/rememberance-mcp"
+REPO="emaharmony/remembrance-mcp"
 BASE_URL="https://github.com/${REPO}/releases/download/${RELEASE_TAG}"
 
 FILES=(

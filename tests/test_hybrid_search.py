@@ -9,8 +9,8 @@ import json
 from contextlib import closing
 from pathlib import Path
 import pytest
-from rememberance_mcp.search.hybrid import HybridSearch, TIER_BOOST
-from rememberance_mcp.store.edges import EntityStore
+from remembrance_mcp.search.hybrid import HybridSearch, TIER_BOOST
+from remembrance_mcp.store.edges import EntityStore
 
 
 @pytest.fixture
@@ -137,27 +137,27 @@ class TestContextBuild:
 
 class TestCosineSimilarity:
     def test_identical_vectors(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         vec = [1.0, 0.0, 0.0]
         sim = HybridSearch._cosine_similarity(vec, vec)
         assert abs(sim - 1.0) < 0.001
 
     def test_orthogonal_vectors(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         a = [1.0, 0.0]
         b = [0.0, 1.0]
         sim = HybridSearch._cosine_similarity(a, b)
         assert abs(sim) < 0.001
 
     def test_opposite_vectors(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         a = [1.0, 0.0]
         b = [-1.0, 0.0]
         sim = HybridSearch._cosine_similarity(a, b)
         assert abs(sim + 1.0) < 0.001
 
     def test_zero_vector(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         a = [0.0, 0.0]
         b = [1.0, 0.0]
         sim = HybridSearch._cosine_similarity(a, b)
@@ -166,7 +166,7 @@ class TestCosineSimilarity:
 
 class TestVectorConversion:
     def test_bytes_roundtrip(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         vec = [0.1, 0.2, 0.3, 0.4]
         blob = HybridSearch._vector_to_bytes(vec)
         recovered = HybridSearch._bytes_to_vector(blob)
@@ -175,6 +175,6 @@ class TestVectorConversion:
             assert abs(a - b) < 0.001
 
     def test_empty_vector(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         assert HybridSearch._bytes_to_vector(b"") == []
         assert HybridSearch._vector_to_bytes([]) == b""

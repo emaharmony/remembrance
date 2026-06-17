@@ -3,20 +3,20 @@ RRF Fusion + Search Edge Case Tests
 """
 
 import pytest
-from rememberance_mcp.search.hybrid import HybridSearch, TIER_BOOST, RRF_K
+from remembrance_mcp.search.hybrid import HybridSearch, TIER_BOOST, RRF_K
 
 
 class TestRRFFusion:
     """Test reciprocal rank fusion edge cases."""
 
     def test_rrf_empty_result_lists(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         search = HybridSearch.__new__(HybridSearch)
         fused = search._rrf_fuse([], [])
         assert fused == []
 
     def test_rrf_single_result(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         search = HybridSearch.__new__(HybridSearch)
         fts_results = [{"id": "mem_1", "tier": "active", "sources": ["fts5"]}]
         fused = search._rrf_fuse(fts_results)
@@ -25,7 +25,7 @@ class TestRRFFusion:
 
     def test_rrf_duplicate_across_strategies(self):
         """Same memory found by both FTS5 and vector should get combined score."""
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         search = HybridSearch.__new__(HybridSearch)
         fts_results = [{"id": "mem_1", "tier": "persist", "sources": ["fts5"]}]
         vec_results = [{"id": "mem_1", "tier": "persist", "sources": ["vector"]}]
@@ -36,7 +36,7 @@ class TestRRFFusion:
 
     def test_rrf_tier_boost_persist(self):
         """PERSIST tier should get 1.5x boost in RRF."""
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         search = HybridSearch.__new__(HybridSearch)
         persist_results = [{"id": "mem_1", "tier": "persist", "sources": ["fts5"]}]
         cold_results = [{"id": "mem_2", "tier": "cold", "sources": ["fts5"]}]
@@ -48,7 +48,7 @@ class TestRRFFusion:
 
     def test_rrf_score_ties(self):
         """When two results have equal RRF score, both should be returned."""
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         search = HybridSearch.__new__(HybridSearch)
         results = [
             {"id": "mem_1", "tier": "active", "sources": ["fts5"]},
@@ -59,7 +59,7 @@ class TestRRFFusion:
 
     def test_rrf_preserves_sources(self):
         """Sources should be deduplicated in fused results."""
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         search = HybridSearch.__new__(HybridSearch)
         r1 = [{"id": "mem_1", "tier": "active", "sources": ["fts5"]}]
         r2 = [{"id": "mem_1", "tier": "active", "sources": ["vector"]}]
@@ -80,19 +80,19 @@ class TestTierBoostValues:
 
 class TestCosineSimilarityEdgeCases:
     def test_different_length_vectors(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         a = [1.0, 0.0]
         b = [1.0, 0.0, 0.0]
         sim = HybridSearch._cosine_similarity(a, b)
         assert sim == 0.0  # Different length = no similarity
 
     def test_empty_vectors(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         sim = HybridSearch._cosine_similarity([], [])
         assert sim == 0.0
 
     def test_unit_vectors(self):
-        from rememberance_mcp.search.hybrid import HybridSearch
+        from remembrance_mcp.search.hybrid import HybridSearch
         a = [0.6, 0.8]  # unit vector
         b = [0.8, 0.6]  # unit vector
         sim = HybridSearch._cosine_similarity(a, b)

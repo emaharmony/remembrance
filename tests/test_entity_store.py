@@ -8,7 +8,7 @@ import tempfile
 import time
 from pathlib import Path
 import pytest
-from rememberance_mcp.store.edges import EntityStore, Entity, Edge, ENTITY_TYPES, EDGE_TYPES
+from remembrance_mcp.store.edges import EntityStore, Entity, Edge, ENTITY_TYPES, EDGE_TYPES
 
 
 @pytest.fixture

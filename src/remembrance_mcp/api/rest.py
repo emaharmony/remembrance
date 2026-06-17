@@ -26,7 +26,7 @@ ENDPOINTS:
 
 PRISM /v1 COMPATIBILITY LAYER:
   Prism's Go remembrance client speaks a `/v1/*` dialect. These aliases map
-  it onto the same pipeline so rememberance-mcp is a drop-in replacement for
+  it onto the same pipeline so remembrance-mcp is a drop-in replacement for
   the in-repo `remembrance/` service:
   GET  /v1/health            → health check
   POST /v1/memory/ingest     → capture (CaptureRequest shape)
@@ -39,11 +39,12 @@ from __future__ import annotations
 import json
 import logging
 import errno
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import sqlite3
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Optional
 
-from rememberance_mcp.pipeline import MemoryPipeline
+from remembrance_mcp.pipeline import MemoryPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +163,7 @@ class RemembranceHandler(BaseHTTPRequestHandler):
 
         try:
             if path in ("/health", "/v1/health"):
-                self._json_response({"status": "ok", "version": "2.0.0"})
+                self._json_response({"status": "ok", "version": "2.0.0", **self._fts_health()})
 
             elif path == "/stats":
                 stats = self.pipeline.stats()
@@ -346,6 +347,44 @@ class RemembranceHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(content_length)
         return json.loads(body.decode("utf-8"))
 
+    def _fts_health(self) -> dict:
+        """Cheap self-probe surfaced on /health.
+
+        Reports the memory count and whether the FTS5 index actually returns
+        the most recent memory by a token from its own content. A `False`
+        here means keyword search / context build will silently return nothing
+        (the external-content index drifted) — a failure mode that is otherwise
+        invisible. Best-effort: never raises into the health response.
+        """
+        try:
+            db = self.pipeline.store.db_path
+            conn = sqlite3.connect(str(db))
+            conn.row_factory = sqlite3.Row
+            try:
+                memories = conn.execute("SELECT count(*) FROM memories").fetchone()[0]
+                fts_ok = True
+                if memories > 0:
+                    row = conn.execute(
+                        "SELECT content FROM memories ORDER BY rowid DESC LIMIT 1"
+                    ).fetchone()
+                    token = ""
+                    for word in (row["content"] or "").split():
+                        cleaned = "".join(ch for ch in word if ch.isalnum())
+                        if len(cleaned) >= 4:
+                            token = cleaned
+                            break
+                    if token:
+                        hit = conn.execute(
+                            "SELECT 1 FROM memories_fts WHERE memories_fts MATCH ? LIMIT 1",
+                            [token],
+                        ).fetchone()
+                        fts_ok = hit is not None
+                return {"memories": memories, "fts_ok": fts_ok}
+            finally:
+                conn.close()
+        except Exception as exc:
+            return {"health_probe_error": str(exc)}
+
     def log_message(self, format, *args):
         """Override to use our logger instead of stderr."""
         logger.debug(f"REST API: {format % args}")
@@ -362,7 +401,11 @@ def start_rest_api(pipeline: MemoryPipeline, host: str = "127.0.0.1",
         port: Port number (default: 8788, matching Prism's /context/build convention)
     """
     RemembranceHandler.pipeline = pipeline
-    server = HTTPServer((host, port), RemembranceHandler)
+    # Threaded server: a single slow request (e.g. an Ollama-backed capture or
+    # a balanced context build) must not block health checks and concurrent
+    # readers. SQLite WAL + the default busy timeout handle concurrent access.
+    server = ThreadingHTTPServer((host, port), RemembranceHandler)
+    server.daemon_threads = True
     logger.info(f"REST API starting on http://{host}:{port}")
     try:
         server.serve_forever()

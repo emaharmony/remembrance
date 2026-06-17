@@ -25,7 +25,7 @@ Option 1: Built-in (add to this file)
 Option 2: External plugin (separate package)
   In your own Python package:
 
-    from rememberance_mcp.gate_backends import BaseGateBackend, register_gate_backend
+    from remembrance_mcp.gate_backends import BaseGateBackend, register_gate_backend
 
     class MyCustomBackend(BaseGateBackend):
         @property
@@ -46,7 +46,7 @@ new providers. Anyone can add Anthropic Claude, Cohere, local Llama,
 or a custom rule engine without forking the repo.
 """
 
-from rememberance_mcp.gate_backends import (
+from remembrance_mcp.gate_backends import (
     BaseGateBackend,
     DilBERTBackend,
     HeuristicBackend,
@@ -117,7 +117,7 @@ def build_gate_chain(
     from pathlib import Path
 
     if settings is None:
-        from rememberance_mcp.config import Settings
+        from remembrance_mcp.config import Settings
         settings = Settings()
 
     # Determine backend list

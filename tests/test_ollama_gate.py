@@ -4,8 +4,8 @@ Tests for OllamaGateBackend — LLM-based classification fallback
 
 import pytest
 from unittest.mock import patch, MagicMock
-from rememberance_mcp.gate.ollama import OllamaGateBackend, GATE_PROMPT
-from rememberance_mcp.gate.gate import GateDecision
+from remembrance_mcp.gate.ollama import OllamaGateBackend, GATE_PROMPT
+from remembrance_mcp.gate.gate import GateDecision
 
 
 @pytest.fixture
@@ -58,7 +58,7 @@ class TestHeuristicFallback:
 
 
 class TestClassifyWithMock:
-    @patch("rememberance_mcp.gate.ollama.urllib.request.urlopen")
+    @patch("remembrance_mcp.gate.ollama.urllib.request.urlopen")
     def test_classify_via_ollama(self, mock_urlopen, backend):
         mock_resp = MagicMock()
         mock_resp.read.return_value = b'{"response": "PERSIST"}'
@@ -70,7 +70,7 @@ class TestClassifyWithMock:
         assert result.decision == GateDecision.PERSIST
         assert result.confidence == 0.75  # Ollama classification confidence
 
-    @patch("rememberance_mcp.gate.ollama.urllib.request.urlopen")
+    @patch("remembrance_mcp.gate.ollama.urllib.request.urlopen")
     def test_classify_ollama_unavailable(self, mock_urlopen, backend):
         mock_urlopen.side_effect = Exception("Connection refused")
 
@@ -81,7 +81,7 @@ class TestClassifyWithMock:
 
 
 class TestAvailability:
-    @patch("rememberance_mcp.gate.ollama.urllib.request.urlopen")
+    @patch("remembrance_mcp.gate.ollama.urllib.request.urlopen")
     def test_available(self, mock_urlopen, backend):
         mock_resp = MagicMock()
         mock_resp.read.return_value = b'{"models": [{"name": "nemotron-3-nano:4b"}]}'
@@ -91,7 +91,7 @@ class TestAvailability:
 
         assert backend.is_available() is True
 
-    @patch("rememberance_mcp.gate.ollama.urllib.request.urlopen")
+    @patch("remembrance_mcp.gate.ollama.urllib.request.urlopen")
     def test_unavailable(self, mock_urlopen, backend):
         mock_urlopen.side_effect = Exception("Connection refused")
         assert backend.is_available() is False

@@ -1,13 +1,13 @@
-"""Run the Remembrance REST API with ``python -m rememberance_mcp.api``."""
+"""Run the Remembrance REST API with ``python -m remembrance_mcp.api``."""
 
 from __future__ import annotations
 
 import argparse
 import logging
 
-from rememberance_mcp.config import Settings
-from rememberance_mcp.pipeline import MemoryPipeline
-from rememberance_mcp.api.rest import start_rest_api
+from remembrance_mcp.config import Settings
+from remembrance_mcp.pipeline import MemoryPipeline
+from remembrance_mcp.api.rest import start_rest_api
 
 
 def main() -> None:

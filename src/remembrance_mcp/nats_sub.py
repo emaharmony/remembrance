@@ -34,8 +34,8 @@ import threading
 from collections import deque
 from typing import Optional, Set
 
-from rememberance_mcp.pipeline import MemoryPipeline
-from rememberance_mcp.config import Settings
+from remembrance_mcp.pipeline import MemoryPipeline
+from remembrance_mcp.config import Settings
 
 logger = logging.getLogger(__name__)
 

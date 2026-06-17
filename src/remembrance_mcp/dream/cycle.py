@@ -37,10 +37,10 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from rememberance_mcp.store.edges import EntityStore
-from rememberance_mcp.store.memory import MemoryStoreV2
-from rememberance_mcp.graph.entity import EntityDetector
-from rememberance_mcp.graph.edges import GraphWiring
+from remembrance_mcp.store.edges import EntityStore
+from remembrance_mcp.store.memory import MemoryStoreV2
+from remembrance_mcp.graph.entity import EntityDetector
+from remembrance_mcp.graph.edges import GraphWiring
 
 logger = logging.getLogger(__name__)
 

@@ -20,15 +20,15 @@ session** — if Remembrance is down they exit silently.
 Remembrance running on `http://127.0.0.1:18790` (override with `REMEMBRANCE_URL`):
 
 ```
-python -m rememberance_mcp.serve --host 127.0.0.1 --port 18790 --no-nats
+python -m remembrance_mcp.serve --host 127.0.0.1 --port 18790 --no-nats
 # or, from Prism:  prism remembrance serve
 ```
 
 ## 1. Register the MCP server
 
 ```bash
-claude mcp add rememberance --scope user -- \
-  "D:/_projects_/rememberance-mcp/.venv/Scripts/python.exe" -m rememberance_mcp
+claude mcp add remembrance --scope user -- \
+  "D:/_projects_/remembrance-mcp/.venv/Scripts/python.exe" -m remembrance_mcp
 ```
 
 ## 2. Add the hooks
