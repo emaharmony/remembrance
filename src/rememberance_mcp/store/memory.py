@@ -78,16 +78,37 @@ class MemoryStoreV2:
                 """)
                 logger.info("V2 migration: FTS5 virtual table created")
 
-                # Populate FTS5 from existing data
-                existing = conn.execute("SELECT COUNT(*) FROM memories_fts").fetchone()[0]
-                total = conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0]
-                if existing == 0 and total > 0:
-                    conn.execute("""
+                # Keep the FTS index in sync with `memories`. This is an
+                # external-content FTS5 table (content=memories), which is NOT
+                # populated automatically — inserts/updates/deletes on the base
+                # table must be mirrored into the index via triggers.
+                conn.executescript("""
+                    CREATE TRIGGER IF NOT EXISTS memories_ai AFTER INSERT ON memories BEGIN
                         INSERT INTO memories_fts(rowid, content, compiled_truth, summary, key_topics)
-                        SELECT rowid, content, COALESCE(compiled_truth, ''), summary, key_topics
-                        FROM memories
-                    """)
-                    logger.info(f"V2 migration: populated FTS5 with {total} existing memories")
+                        VALUES (new.rowid, new.content, COALESCE(new.compiled_truth, ''),
+                                new.summary, new.key_topics);
+                    END;
+                    CREATE TRIGGER IF NOT EXISTS memories_ad AFTER DELETE ON memories BEGIN
+                        INSERT INTO memories_fts(memories_fts, rowid, content, compiled_truth, summary, key_topics)
+                        VALUES ('delete', old.rowid, old.content, COALESCE(old.compiled_truth, ''),
+                                old.summary, old.key_topics);
+                    END;
+                    CREATE TRIGGER IF NOT EXISTS memories_au AFTER UPDATE ON memories BEGIN
+                        INSERT INTO memories_fts(memories_fts, rowid, content, compiled_truth, summary, key_topics)
+                        VALUES ('delete', old.rowid, old.content, COALESCE(old.compiled_truth, ''),
+                                old.summary, old.key_topics);
+                        INSERT INTO memories_fts(rowid, content, compiled_truth, summary, key_topics)
+                        VALUES (new.rowid, new.content, COALESCE(new.compiled_truth, ''),
+                                new.summary, new.key_topics);
+                    END;
+                """)
+
+                # Repair/populate the index from the base table. `rebuild` is the
+                # correct, idempotent way to (re)index an external-content table —
+                # COUNT(*) on it reflects the content table, so it can't be used to
+                # detect an empty index. Cheap at personal scale; runs once per boot.
+                conn.execute("INSERT INTO memories_fts(memories_fts) VALUES('rebuild')")
+                logger.info("V2 migration: FTS5 triggers installed and index rebuilt")
 
             except sqlite3.OperationalError as e:
                 logger.warning(f"FTS5 not available: {e}. Keyword search will use LIKE fallback.")

@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:/_projects_/rememberance-mcp/.venv/Scripts/python.exe\" \"D:/_projects_/rememberance-mcp/integrations/claude-code/inject_context.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:/_projects_/rememberance-mcp/.venv/Scripts/python.exe\" \"D:/_projects_/rememberance-mcp/integrations/claude-code/capture_transcript.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

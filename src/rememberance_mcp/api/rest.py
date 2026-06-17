@@ -23,6 +23,15 @@ ENDPOINTS:
   GET  /context/build?task=&project=&agent=  → context building
   GET  /health               → health check
   GET  /stats                → subsystem stats
+
+PRISM /v1 COMPATIBILITY LAYER:
+  Prism's Go remembrance client speaks a `/v1/*` dialect. These aliases map
+  it onto the same pipeline so rememberance-mcp is a drop-in replacement for
+  the in-repo `remembrance/` service:
+  GET  /v1/health            → health check
+  POST /v1/memory/ingest     → capture (CaptureRequest shape)
+  POST /v1/context/build     → context build returning `context_markdown`
+  POST /v1/dream             → trigger dream cycle
 """
 
 from __future__ import annotations
@@ -61,6 +70,82 @@ def _is_client_disconnect(error: BaseException) -> bool:
     return error.errno in CLIENT_DISCONNECT_ERRNOS
 
 
+def _build_context_pack(ctx: dict, task: str, project: Optional[str],
+                        agent: Optional[str], max_tokens: int) -> dict:
+    """Translate pipeline.build_context() output into the ContextPack shape
+    that Prism's Go client (POST /v1/context/build) expects.
+
+    Prism only injects the ``context_markdown`` field, so the markdown is the
+    important part; the structured fields are provided for completeness.
+    """
+    memories = ctx.get("memories", []) or []
+    entities = ctx.get("entities", []) or []
+    threads = ctx.get("open_threads", []) or []
+
+    lines: list[str] = []
+    selected_ids: list[str] = []
+    mem_details: list[dict] = []
+
+    if memories:
+        lines.append("## Relevant Memory")
+        for m in memories:
+            mem_id = m.get("id", "")
+            text = (m.get("summary") or m.get("content") or "").strip()
+            if not text:
+                continue
+            tag = m.get("category") or m.get("tier") or ""
+            suffix = f" _({tag})_" if tag else ""
+            lines.append(f"- {text}{suffix}")
+            if mem_id:
+                selected_ids.append(mem_id)
+            mem_details.append({
+                "memory_id": mem_id,
+                "title": m.get("category") or "memory",
+                "summary": text,
+                "score": float(m.get("score", 0.0) or 0.0),
+                "reason": "hybrid_search",
+            })
+        lines.append("")
+
+    if entities:
+        lines.append("## Entities")
+        for e in entities:
+            truth = (e.get("compiled_truth") or "").strip()
+            etype = e.get("type", "")
+            head = f"**{e.get('name', '')}**"
+            if etype:
+                head += f" ({etype})"
+            lines.append(f"- {head}: {truth}" if truth else f"- {head}")
+        lines.append("")
+
+    if threads:
+        lines.append("## Open Threads")
+        for t in threads:
+            lines.append(f"- {t.get('entity', '')}: {(t.get('context', '') or '').strip()}")
+        lines.append("")
+
+    markdown = "\n".join(lines).strip()
+    # Rough token estimate (~4 chars/token), capped to the requested budget.
+    token_count = min(max_tokens, len(markdown) // 4) if markdown else 0
+
+    return {
+        "project_id": project or "prism",
+        "agent_id": agent or "",
+        "task": task,
+        "selected_memories": selected_ids,
+        "context_markdown": markdown,
+        "context_json": {
+            "project_id": project or "prism",
+            "agent_id": agent or "",
+            "task": task,
+            "selected_memories": mem_details,
+            "total_memories": len(mem_details),
+        },
+        "warnings": [],
+        "token_count": token_count,
+    }
+
+
 class RemembranceHandler(BaseHTTPRequestHandler):
     """
     HTTP request handler for the Remembrance REST API.
@@ -76,7 +161,7 @@ class RemembranceHandler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
 
         try:
-            if path == "/health":
+            if path in ("/health", "/v1/health"):
                 self._json_response({"status": "ok", "version": "2.0.0"})
 
             elif path == "/stats":
@@ -181,11 +266,47 @@ class RemembranceHandler(BaseHTTPRequestHandler):
                 )
                 self._json_response(result, status=201)
 
-            elif path == "/dream":
+            elif path in ("/dream", "/v1/dream"):
                 phases = body.get("phases")
                 dry_run = body.get("dry_run", False)
                 result = self.pipeline.dream(phases=phases, dry_run=dry_run)
                 self._json_response(result)
+
+            # ── Prism /v1 compatibility layer ──────────────────────
+            # Prism's Go client posts to these /v1 paths with its own
+            # request shape; translate them onto the pipeline.
+
+            elif path == "/v1/memory/ingest":
+                # Prism CaptureRequest → pipeline.capture()
+                text = body.get("content") or body.get("summary") or ""
+                source = (body.get("source_agent") or body.get("source_type")
+                          or body.get("source") or "prism")
+                category = body.get("category")
+                # NOTE: Prism's `scope` (project/user) is a different vocabulary
+                # from the gate tier (cold/active/persist), so we let the gate
+                # decide the tier rather than forcing scope onto it.
+                if not text:
+                    self._json_response({"error": "Missing 'content' field"}, status=400)
+                    return
+                result = self.pipeline.capture(text=text, source=source, category=category)
+                self._json_response(result, status=201)
+
+            elif path == "/v1/context/build":
+                # Prism BuildContextRequest → pipeline.build_context()
+                task = body.get("task", "")
+                project = body.get("project_id") or body.get("project")
+                agent = body.get("agent_id") or body.get("agent")
+                max_tokens = int(body.get("max_tokens") or 2500)
+                limit = int(body.get("limit") or 10)
+                if not task:
+                    self._json_response({"error": "Missing 'task' field"}, status=400)
+                    return
+                ctx = self.pipeline.build_context(
+                    task=task, project=project, agent=agent, limit=limit
+                )
+                self._json_response(
+                    _build_context_pack(ctx, task, project, agent, max_tokens)
+                )
 
             else:
                 self._json_response({"error": "Not found"}, status=404)

@@ -117,6 +117,11 @@ Output JSON:
                 "prompt": prompt,
                 "stream": False,
                 "format": "json",
+                # Reasoning models (e.g. nemotron-3-nano) otherwise emit their
+                # output in a separate `thinking` field and leave `response`
+                # empty, which fails JSON parsing. Disabling thinking makes the
+                # JSON land in `response`. Ignored by non-reasoning models.
+                "think": False,
             }).encode("utf-8")
 
             req = urllib.request.Request(

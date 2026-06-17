@@ -81,10 +81,37 @@ __all__ = [
 
 
 def main():
-    """Entry point for `memory-mcp` CLI command."""
+    """Entry point for the `rememberance-mcp` stdio MCP server.
+
+    Wires the MCP server to stdio transport. `Server.run()` requires the
+    read/write streams and initialization options, so we open the stdio
+    transport and pass them through.
+    """
     import asyncio
-    server = create_server()
-    asyncio.run(server.run())
+
+    async def _serve():
+        import mcp.server.stdio
+        from mcp.server import NotificationOptions
+        from mcp.server.models import InitializationOptions
+        from rememberance_mcp.config import Settings
+
+        settings = Settings.get()
+        server = create_server()
+        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name=settings.MCP_SERVER_NAME,
+                    server_version=settings.MCP_SERVER_VERSION,
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
+                ),
+            )
+
+    asyncio.run(_serve())
 
 
 if __name__ == "__main__":
