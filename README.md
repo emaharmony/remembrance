@@ -88,6 +88,13 @@ Equivalent service command, with NATS disabled:
 python -m remembrance_mcp.serve --no-nats
 ```
 
+Installing the package also exposes a `remembrance-service` console script that
+is equivalent to `python -m remembrance_mcp.serve`:
+
+```bash
+remembrance-service --no-nats
+```
+
 Custom host and port:
 
 ```bash
@@ -119,6 +126,9 @@ Then run:
 ```bash
 python -m remembrance_mcp
 ```
+
+Installing the package also exposes a `remembrance-mcp` console script that
+starts the same stdio MCP server.
 
 Example MCP client configuration:
 
@@ -335,6 +345,50 @@ PowerShell:
 $env:OPENAI_API_KEY="..."
 $env:REMEMBRANCE_GATE_BACKENDS="openai,heuristic"
 ```
+
+## Integrations
+
+The `integrations/` directory contains drop-in setups for running Remembrance as
+a background service and wiring it into agent clients. These integrations use
+port **18790** by convention (the REST default for standalone use remains 8788).
+
+### Windows autostart
+
+`integrations/windows/` starts the REST service at login, hidden, on port 18790
+with NATS disabled:
+
+- `start_remembrance_rest.ps1` — starts the service if port 18790 is not already
+  listening, logging to `.tmp/remembrance-flow/`.
+- `start_remembrance_rest.vbs` — launches the PowerShell script with no visible
+  window; point a Startup-folder shortcut or Task Scheduler entry at this file.
+
+The repo path inside both scripts is hard-coded; edit it if your checkout lives
+elsewhere.
+
+### Claude Code
+
+`integrations/claude-code/` gives any Claude Code session shared, persistent
+memory backed by Remembrance, in three composable layers:
+
+1. **MCP server** — exposes `memory_search`, `memory_capture`,
+   `memory_context_build`, `memory_graph_query`, and `memory_dream` as tools.
+2. **SessionStart hook** (`inject_context.py`) — injects recalled memory for the
+   current project at the start of every session.
+3. **Stop hook** (`capture_transcript.py`) — captures new conversation at the end
+   of each turn; the gate decides what is worth keeping.
+
+Both hooks are pure stdlib and never block a session — if Remembrance is down
+they exit silently. They expect the service on `http://127.0.0.1:18790`
+(override with `REMEMBRANCE_URL`). Register the MCP server with:
+
+```bash
+claude mcp add remembrance --scope user -- \
+  "/path/to/remembrance-mcp/.venv/Scripts/python.exe" -m remembrance_mcp
+```
+
+Then merge `integrations/claude-code/settings.snippet.json` into your
+`~/.claude/settings.json` (all projects) or a project `.claude/settings.json`.
+See `integrations/claude-code/README.md` for full details.
 
 ## Development
 
