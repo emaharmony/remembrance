@@ -98,8 +98,12 @@ class MemoryPipeline:
         )
 
         # ── V2: Entity Store + Knowledge Graph ─────────────────
+        # Unified into the main DB (DB_PATH) so dream-cycle phases can join
+        # the entity graph against the `memories` table in a single connection.
+        # Previously split into a separate entities.db, which broke
+        # entity_sweep/backlink_audit/purge ("no such table: memories").
         self.entity_store = EntityStore(
-            db_path=self.settings.DB_PATH.parent / "entities.db"
+            db_path=self.settings.DB_PATH
         )
 
         # ── V2: Memory Store V2 Extensions ────────────────────
@@ -107,7 +111,7 @@ class MemoryPipeline:
 
         # ── V2: Fact Store ────────────────────────────────────
         self.fact_store = FactStore(
-            db_path=self.settings.DB_PATH.parent / "entities.db"
+            db_path=self.settings.DB_PATH
         )
 
         # ── V2: Graph Wiring + Entity Detection ──────────────
