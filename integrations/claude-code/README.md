@@ -31,6 +31,15 @@ claude mcp add remembrance --scope user -- \
   "D:/_projects_/remembrance-mcp/.venv/Scripts/python.exe" -m remembrance_mcp
 ```
 
+On this Windows setup, the user-scoped Claude entry uses the included wrapper so
+the MCP subprocess gets the correct working directory and Remembrance
+environment:
+
+```powershell
+claude mcp add remembrance --scope user -- `
+  D:\_projects_\remembrance-mcp\integrations\claude-code\remembrance_mcp_stdio.cmd
+```
+
 ## 2. Add the hooks
 
 Merge `settings.snippet.json` into `~/.claude/settings.json` (user scope = all
