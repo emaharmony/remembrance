@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:/_projects_/remembrance-mcp/.venv/Scripts/python.exe\" \"D:/_projects_/remembrance-mcp/integrations/codex/recall_session.py\"",
+            "timeoutSec": 10,
+            "statusMessage": "Recalling Remembrance memory"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:/_projects_/remembrance-mcp/.venv/Scripts/python.exe\" \"D:/_projects_/remembrance-mcp/integrations/codex/capture_turn.py\"",
+            "timeoutSec": 10,
+            "statusMessage": "Capturing turn to Remembrance"
+          }
+        ]
+      }
+    ]
+  }
+}
